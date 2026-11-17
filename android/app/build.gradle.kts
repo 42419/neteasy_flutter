@@ -7,20 +7,11 @@ plugins {
 android {
     namespace = "top.yunov.neteasy_flutter"
     compileSdk = flutter.compileSdkVersion
-    // 不设 ndkVersion：本项目没有 native 源码，NDK 只会被 AGP 用来 strip 预编译的
-    // libneteasy_backend.so，却要为此下载约 1GB 的 NDK（CI 上就是卡在这一步）。
-    // 配套的 packaging.jniLibs.keepDebugSymbols 让 AGP 跳过 strip。
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    packaging {
-        jniLibs {
-            // 后端库是 release 版 Rust 产物，符号已剥离，不需要 AGP 再 strip
-            keepDebugSymbols += "**/*.so"
-        }
     }
 
     defaultConfig {
