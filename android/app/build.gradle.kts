@@ -47,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // BackendService 用到 NotificationCompat / ServiceCompat.startForeground(type)
+    implementation("androidx.core:core-ktx:1.16.0")
+}

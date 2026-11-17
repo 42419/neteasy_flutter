@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  1) 本机后端走明文 HTTP（http://127.0.0.1:19800）。
+     Android 9–16 必须显式放行 localhost 明文。
+  2) 网易云图片/音频 CDN 部分为明文 HTTP（banner 图 p1.music.126.net、
+     歌曲流 m7.music.126.net），图片与音频加载时需要放行。
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">music.126.net</domain>
+        <domain includeSubdomains="true">music.163.com</domain>
+    </domain-config>
+</network-security-config>

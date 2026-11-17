@@ -1,122 +1,188 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'data/api_client.dart';
+
 void main() {
-  runApp(const MyApp());
+  runApp(const NeteasyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// 阶段 0 的验证壳：只证明「本地 Rust 后端已就绪 + 接口能通」。
+/// 真正的首页在阶段 1 之后替换这里。
+class NeteasyApp extends StatelessWidget {
+  const NeteasyApp({super.key});
 
-  // This widget is the root of your application.
+  /// 网易云品牌红，来源 Kotlin 版 ui/theme/Color.kt 的 LightPrimary
+  static const Color brandRed = Color(0xFFD92D1F);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'neteasy',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: .fromSeed(seedColor: brandRed),
+        brightness: .light,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      darkTheme: ThemeData(
+        colorScheme: .fromSeed(seedColor: brandRed, brightness: .dark),
+        brightness: .dark,
+      ),
+      home: const BackendProbePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class BackendProbePage extends StatefulWidget {
+  const BackendProbePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<BackendProbePage> createState() => _BackendProbePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _BackendProbePageState extends State<BackendProbePage> {
+  final ApiClient _api = ApiClient();
+  final List<_ProbeLine> _lines = [];
+  String _headline = '等待本地后端…';
+  bool _ok = false;
+  bool _running = false;
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _probe();
+  }
+
+  Future<void> _probe() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _running = true;
+      _ok = false;
+      _headline = '等待本地后端…';
+      _lines.clear();
+    });
+
+    final total = Stopwatch()..start();
+    try {
+      await _run('/login/status', () async {
+        final json = await _api.get('/login/status');
+        final account = json['account'];
+        if (account is Map && account['id'] != null) {
+          return '已登录 uid=${account['id']}';
+        }
+        return '游客态（未登录）';
+      });
+
+      await _run('/banner', () async {
+        final json = await _api.get('/banner', {'type': '2'});
+        final banners = json['banners'];
+        if (banners is! List) return '无 banners 字段';
+        final titles = banners
+            .whereType<Map>()
+            .map((b) => b['typeTitle'] ?? b['title'] ?? '(无标题)')
+            .take(3)
+            .join(' / ');
+        return '${banners.length} 条：$titles';
+      });
+
+      await _run('/personalized', () async {
+        final json = await _api.get('/personalized', {'limit': '6'});
+        final result = json['result'];
+        if (result is! List) return '无 result 字段';
+        final names = result
+            .whereType<Map>()
+            .map((p) => p['name'] ?? '(无名称)')
+            .take(3)
+            .join(' / ');
+        return '${result.length} 个歌单：$names';
+      });
+
+      setState(() {
+        _ok = true;
+        _headline = '后端就绪，全部通过（${total.elapsedMilliseconds} ms）';
+      });
+    } on ApiException catch (e) {
+      setState(() => _headline = '失败：$e');
+    } catch (e) {
+      setState(() => _headline = '异常：$e');
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  Future<void> _run(String label, Future<String> Function() body) async {
+    final sw = Stopwatch()..start();
+    final detail = await body();
+    if (!mounted) return;
+    setState(() {
+      _lines.add(_ProbeLine(label, detail, sw.elapsedMilliseconds));
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('后端联通自检'),
+        backgroundColor: scheme.surfaceContainer,
+        actions: [
+          IconButton(
+            onPressed: _running ? null : _probe,
+            icon: const Icon(Icons.refresh),
+            tooltip: '重新检测',
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            color: _ok ? scheme.primaryContainer : scheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (_running)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Icon(_ok ? Icons.check_circle : Icons.error, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_headline)),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+          ),
+          const SizedBox(height: 8),
+          for (final line in _lines)
+            ListTile(
+              dense: true,
+              horizontalTitleGap: 8,
+              leading: Text(
+                '${line.elapsedMs}ms',
+                style: theme.textTheme.labelSmall,
+              ),
+              title: Text(line.label),
+              subtitle: Text(line.detail),
+            ),
+          const SizedBox(height: 24),
+          Text(
+            '127.0.0.1:19800 · cookie: ${_api.cookies.isEmpty ? '空' : _api.cookies.keys.join(',')}',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }
+}
+
+class _ProbeLine {
+  _ProbeLine(this.label, this.detail, this.elapsedMs);
+
+  final String label;
+  final String detail;
+  final int elapsedMs;
 }

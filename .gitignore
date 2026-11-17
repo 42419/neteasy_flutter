@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# 内嵌 Rust 后端动态库（9.7MB × 3 ABI，不入库）
+# CI 在构建前从 neteasy-backend 的 Release 下载并校验 SHA-256，
+# 见 .github/workflows/build-debug.yml；本地已下载到该目录可直接构建。
+android/app/src/main/jniLibs/
+
+# Kotlin 增量编译的会话文件
+android/.kotlin/
+
