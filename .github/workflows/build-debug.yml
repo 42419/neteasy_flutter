@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -53,8 +53,10 @@ jobs:
           flutter analyze
           flutter test
 
+      # 只出 arm64：debug 引擎每个 ABI 30~37MB，三 ABI 会让 APK 到 162MB。
+      # 需要模拟器（x86_64）时把 --target-platform 换成 "android-arm64,android-x64"。
       - name: 构建 debug APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --target-platform android-arm64
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
