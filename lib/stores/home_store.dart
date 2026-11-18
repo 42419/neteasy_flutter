@@ -8,11 +8,15 @@ import '../viewmodels/song.dart';
 
 /// 首页状态。
 ///
-/// 页面只读这里的数据，不自己发请求；登录态是附加信息，失败不影响首页主体。
+/// 页面只读这里的数据，不自己发请求。登录态由 SessionStore 管，
+/// 这里通过回调拿 uid，避免两个 store 互相持有。
 class HomeStore extends ChangeNotifier {
-  HomeStore(this._repo);
+  HomeStore(this._repo, {this.uidProvider});
 
   final NcmRepository _repo;
+
+  /// 当前登录用户 id 的来源；返回 null 表示未登录
+  final int? Function()? uidProvider;
 
   bool _loading = true;
   String? _error;
@@ -30,7 +34,7 @@ class HomeStore extends ChangeNotifier {
   int? get uid => _uid;
   bool get loggedIn => _uid != null;
 
-  /// 拉首页所需的全部数据。下拉刷新与首次进入共用。
+  /// 拉首页所需的全部数据。下拉刷新、首次进入、登录状态变化都走这里。
   Future<void> load() async {
     _loading = true;
     _error = null;
@@ -48,9 +52,8 @@ class HomeStore extends ChangeNotifier {
     final Result<List<Rank>> ranks = await _repo.toplists();
     _ranks = ranks is Ok<List<Rank>> ? ranks.value : const <Rank>[];
 
-    // 登录态失败不当成首页失败：游客也能看推荐歌单和排行榜
-    final Result<int?> uid = await _repo.currentUid();
-    _uid = uid is Ok<int?> ? uid.value : null;
+    // 未登录就不请求需要登录的接口，避免多一次必然失败的往返
+    _uid = uidProvider?.call();
     if (_uid != null) {
       final Result<List<Song>> daily = await _repo.dailySongs();
       _daily = daily is Ok<List<Song>> ? daily.value : const <Song>[];

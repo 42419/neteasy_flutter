@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import 'home/home_view.dart';
+import 'profile/profile_view.dart';
 
 /// 主页面壳：底部三个图标 tab + 内容区。
 ///
@@ -27,7 +28,7 @@ class _MainPageState extends State<MainPage> {
         children: const <Widget>[
           HomeView(),
           _PlaceholderPage(label: '关注'),
-          _PlaceholderPage(label: '我的'),
+          ProfileView(),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),

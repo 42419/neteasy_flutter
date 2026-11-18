@@ -1,11 +1,11 @@
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
+import '../viewmodels/user_profile.dart';
 
 /// 网易云原始 JSON → viewmodels。
 ///
 /// 所有容错都收敛在这里：字段缺失返回 null 让上层过滤，不在页面里做 `as` 强转。
-/// 字段口径对齐 Kotlin 版 `data/model/Models.kt` 的 parseBanners / parsePersonalized / parseToplist。
 Playlist? toPlaylist(Map<dynamic, dynamic> json) {
   final int id = asInt(json['id']);
   final String name = (json['name'] as String?) ?? '';
@@ -76,6 +76,32 @@ Song? toSong(Map<dynamic, dynamic> json) {
     coverUrl: cover,
     albumName: albumName,
     durationMs: asInt(json['dt'] ?? json['duration']),
+  );
+}
+
+/// 登录态响应 → 用户资料；未登录返回 null。
+///
+/// 结构是 `{ data: { code, account, profile } }`——外层没有 code，**code 在 data 里**，
+/// 且 `account` 只有 id，昵称头像在 `profile`。
+UserProfile? toLoginProfile(Map<dynamic, dynamic> json) {
+  final Object? data = json['data'];
+  if (data is! Map) {
+    return null;
+  }
+  if (asInt(data['code']) != 200) {
+    return null;
+  }
+  final Object? account = data['account'];
+  final int uid = account is Map ? asInt(account['id']) : 0;
+  if (uid == 0) {
+    return null;
+  }
+  final Object? profile = data['profile'] ?? account;
+  return UserProfile(
+    uid: uid,
+    nickname: profile is Map ? (profile['nickname'] as String?) ?? '' : '',
+    avatarUrl: profile is Map ? (profile['avatarUrl'] as String?) ?? '' : '',
+    vipType: profile is Map ? asInt(profile['vipType']) : 0,
   );
 }
 

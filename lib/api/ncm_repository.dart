@@ -2,17 +2,23 @@ import '../utils/result.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
+import '../viewmodels/user_profile.dart';
 import 'api_client.dart';
 import 'ncm_mapper.dart';
 
 /// 网易云数据仓库：只调用后端已实现的路由，返回 `Result`，不抛裸异常。
 ///
-/// 后端（neteasy-backend v0.2.0）目前只实现了 24 个接口，首页若干模块没有数据源，
-/// 对应的占位由页面层处理，这里不提供假实现。
+/// 后端目前只实现了 24 个接口，首页若干模块没有数据源，对应占位由页面层处理，
+/// 这里不提供假实现。
 class NcmRepository {
   const NcmRepository(this._api);
 
   final ApiClient _api;
+
+  /// 带时间戳绕过后端的 GET 缓存（二维码状态这类接口必须实时）
+  String get _stamp => DateTime.now().millisecondsSinceEpoch.toString();
+
+  // ---------- 首页 ----------
 
   /// 推荐歌单（`/personalized`）
   Future<Result<List<Playlist>>> recommendPlaylists({int limit = 6}) async {
@@ -60,14 +66,62 @@ class NcmRepository {
     };
   }
 
-  /// 当前登录用户 id（`/login/status`）；未登录返回 `Ok(null)`。
-  Future<Result<int?>> currentUid() async {
+  // ---------- 登录 ----------
+
+  /// 二维码 unikey（`/login/qr/key`）
+  Future<Result<String>> qrKey() async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/login/qr/key',
+      <String, String>{'timestamp': _stamp},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(_readNested(value, 'unikey')),
+      Err(:final AppError error) => Err<String>(error),
+    };
+  }
+
+  /// 二维码图片：后端返回 `data:image/png;base64,...` 的 data url（`/login/qr/create`）
+  Future<Result<String>> qrImage(String key) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/login/qr/create',
+      <String, String>{'key': key, 'qrimg': 'true', 'timestamp': _stamp},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(_readNested(value, 'qrimg')),
+      Err(:final AppError error) => Err<String>(error),
+    };
+  }
+
+  /// 轮询扫码状态（`/login/qr/check`），返回 801/800/802/803
+  Future<Result<int>> qrCheck(String key) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/login/qr/check',
+      <String, String>{'key': key, 'timestamp': _stamp},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(asInt(value['code'])),
+      Err(:final AppError error) => Err<int>(error),
+    };
+  }
+
+  /// 当前登录用户（`/login/status`）；未登录返回 `Ok(null)`。
+  Future<Result<UserProfile?>> loginProfile() async {
     final Result<Map<String, dynamic>> result = await _api.get('/login/status');
     return switch (result) {
-      Ok(:final Map<String, dynamic> value) => Ok(
-        value['account'] is Map ? asInt((value['account'] as Map)['id']) : null,
-      ),
-      Err(:final AppError error) => Err<int?>(error),
+      Ok(:final Map<String, dynamic> value) => Ok(toLoginProfile(value)),
+      Err(:final AppError error) => Err<UserProfile?>(error),
     };
+  }
+
+  /// 取 `data.<field>`，缺失时返回空串
+  String _readNested(Map<String, dynamic> json, String field) {
+    final Object? data = json['data'];
+    if (data is Map) {
+      final Object? value = data[field];
+      if (value is String) {
+        return value;
+      }
+    }
+    return '';
   }
 }

@@ -1,21 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
 import '../constants/app_constants.dart';
+import '../utils/cookie_store.dart';
 import '../utils/result.dart';
 
 /// 访问内嵌 Rust 后端（`127.0.0.1:19800`）的客户端。
 ///
-/// 三条约定与 Kotlin 版 `data/ApiClient.kt` 保持一致：
-/// - 自动携带/回传 cookie（登录后由服务端 Set-Cookie 更新）
+/// 三条约定：
+/// - 自动携带/回传 cookie，并持久化到 [CookieStore]，登录态跨重启不丢
 /// - **只对「连接建立失败」重试**：后端在前台服务里异步拉起，冷启动时第一批请求可能
 ///   比端口绑定更早，此时是 connection refused 而不是超时。放宽成「任何错误都重试」
 ///   会吞掉真正的 HTTP 错误，还可能重复提交。
 /// - 错误信息优先用后端的 `neteasyHint`（例如触发风控），其次 `msg`，最后才是状态码
 class ApiClient {
-  ApiClient({Dio? dio})
-    : _dio =
+  ApiClient({Dio? dio, CookieStore? cookieStore})
+    : _cookieStorage = cookieStore,
+      _dio =
           dio ??
           Dio(
             BaseOptions(
@@ -25,17 +28,27 @@ class ApiClient {
               // 状态码由后端决定，不让 Dio 自己抛
               validateStatus: (int? status) => status != null,
             ),
-          );
+          ) {
+    final Map<String, String> saved =
+        _cookieStorage?.load() ?? <String, String>{};
+    if (saved.isNotEmpty) {
+      _cookies.addAll(saved);
+      _applyCookieHeader();
+    }
+  }
 
   /// 冷启动等待后端 listen 的重试次数 × 间隔（合计约 3 秒）
   static const int _maxConnectRetries = 15;
   static const Duration _connectRetryDelay = Duration(milliseconds: 200);
 
   final Dio _dio;
+  final CookieStore? _cookieStorage;
 
   final Map<String, String> _cookies = <String, String>{};
 
   Map<String, String> get cookies => Map<String, String>.unmodifiable(_cookies);
+
+  bool get loggedIn => _cookies.containsKey(CookieStore.loginCookieName);
 
   Future<Result<Map<String, dynamic>>> get(
     String path, [
@@ -49,6 +62,13 @@ class ApiClient {
     Map<String, String>? form,
   ]) {
     return _execute(() => _dio.post<dynamic>(path, data: form));
+  }
+
+  /// 清空登录态（登出用）
+  Future<void> clearCookies() async {
+    _cookies.clear();
+    _dio.options.headers.remove('cookie');
+    await _cookieStorage?.clear();
   }
 
   Future<Result<Map<String, dynamic>>> _execute(
@@ -116,12 +136,19 @@ class ApiClient {
         _cookies[name] = value;
       }
     }
-    // 后端按 Cookie 头识别登录身份，必须回传
-    if (_cookies.isNotEmpty) {
-      _dio.options.headers['cookie'] = _cookies.entries
-          .map((MapEntry<String, String> e) => '${e.key}=${e.value}')
-          .join('; ');
+    _applyCookieHeader();
+    // 落盘不阻塞请求；写失败也不影响本次会话
+    unawaited(_cookieStorage?.save(_cookies) ?? Future<void>.value());
+  }
+
+  void _applyCookieHeader() {
+    if (_cookies.isEmpty) {
+      _dio.options.headers.remove('cookie');
+      return;
     }
+    _dio.options.headers['cookie'] = _cookies.entries
+        .map((MapEntry<String, String> e) => '${e.key}=${e.value}')
+        .join('; ');
   }
 
   String _describeHttpError(int status, Object? body) {
