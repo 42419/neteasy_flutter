@@ -1,4 +1,5 @@
 import '../utils/result.dart';
+import '../viewmodels/home_block.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
@@ -19,6 +20,19 @@ class NcmRepository {
   String get _stamp => DateTime.now().millisecondsSinceEpoch.toString();
 
   // ---------- 首页 ----------
+
+  /// 首页区块（`/homepage/block/page`）：官方首页的推荐歌单、曲风、新歌新碟等
+  /// 都在这个响应里按顺序返回，是首页主体的数据源。
+  Future<Result<List<HomeBlock>>> homeBlocks({bool refresh = false}) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/homepage/block/page',
+      <String, String>{'refresh': refresh ? 'true' : 'false'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toHomeBlocks(value)),
+      Err(:final AppError error) => Err<List<HomeBlock>>(error),
+    };
+  }
 
   /// 推荐歌单（`/personalized`）
   Future<Result<List<Playlist>>> recommendPlaylists({int limit = 6}) async {

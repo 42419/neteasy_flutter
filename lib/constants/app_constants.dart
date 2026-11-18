@@ -32,13 +32,4 @@ class AppConstants {
   /// VIP / SVIP 徽章：横条状，viewBox 36×16 与 40×16，按高度 16 显示
   static const String vipBadge = 'assets/icons/vip/vip.svg';
   static const String svipBadge = 'assets/icons/vip/svip.svg';
-
-  /// 首页缺失模块的占位提示文案。
-  /// 后端补齐路由后删掉对应条目，页面里直接替换成真实区块。
-  static const String pendingCloudVillage = '待接入 /program/recommend';
-  static const String pendingHotGenre = '待接入 /personalized/newsong 或标签歌单';
-  static const String pendingArtist = '待接入 /personalized/artist（艺人偏好）';
-  static const String pendingRadar = '待接入 /personalized/radar';
-  static const String pendingProgram = '待接入 /dj/program/recommend';
-  static const String pendingVoiceList = '待接入 /voicelist/recommend';
 }
