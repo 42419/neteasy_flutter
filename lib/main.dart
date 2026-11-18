@@ -1,26 +1,11 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'features/home/home_page.dart';
-import 'theme/tokens.dart';
+import 'routes/app_router.dart';
 
-void main() {
-  runApp(const NeteasyApp());
-}
-
-class NeteasyApp extends StatelessWidget {
-  const NeteasyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'neteasy',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Tokens.brand),
-        scaffoldBackgroundColor: Tokens.background,
-        splashFactory: InkSparkle.splashFactory,
-      ),
-      home: const HomePage(),
-    );
-  }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // 复刻官方：内容延伸到状态栏下方，由各页自己补安全区
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  runApp(getRootWidget());
 }
