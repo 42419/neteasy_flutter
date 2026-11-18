@@ -173,6 +173,20 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
 
+          // 后端没有对应路由的模块，按官方位置占位，后续补接口
+          const SliverToBoxAdapter(
+            child: _MissingSection(
+              title: '近期云村热播',
+              hint: '待接入 /program/recommend',
+            ),
+          ),
+          const SliverToBoxAdapter(
+            child: _MissingSection(
+              title: '说唱 | 电子 | 摇滚 热门精选',
+              hint: '待接入 /personalized/newsong 或标签歌单',
+            ),
+          ),
+
           if (_ranks.isNotEmpty) ...[
             const SliverToBoxAdapter(child: _SectionHeader(title: '排行榜')),
             SliverToBoxAdapter(
@@ -190,6 +204,20 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+
+          const SliverToBoxAdapter(
+            child: _MissingSection(
+              title: '选择你喜欢的艺人，为你定制歌单',
+              hint: '待接入 /personalized/artist（艺人偏好）',
+            ),
+          ),
+          if (_uid != null)
+            const SliverToBoxAdapter(
+              child: _MissingSection(
+                title: '我的雷达歌单',
+                hint: '待接入 /personalized/radar',
+              ),
+            ),
 
           if (_daily.isNotEmpty) ...[
             SliverToBoxAdapter(
@@ -215,6 +243,19 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+
+          const SliverToBoxAdapter(
+            child: _MissingSection(
+              title: '根据你听过的热门节目推荐',
+              hint: '待接入 /dj/program/recommend',
+            ),
+          ),
+          const SliverToBoxAdapter(
+            child: _MissingSection(
+              title: 'SVIP 专享有声书免费听',
+              hint: '待接入 /voicelist/recommend',
+            ),
+          ),
 
           // 给悬浮迷你播放器 + 底部导航留出空间
           const SliverToBoxAdapter(child: SizedBox(height: 96)),
@@ -325,6 +366,29 @@ class _SectionHeader extends StatelessWidget {
           if (trailing != null) Text(trailing!, style: Tokens.caption),
         ],
       ),
+    );
+  }
+}
+
+/// 后端还没有对应路由的模块占位：标题照抄官方文案，中间一行说明缺什么接口。
+/// 位置与官方一致，接口补齐后直接替换成真实内容。
+class _MissingSection extends StatelessWidget {
+  const _MissingSection({required this.title, required this.hint});
+
+  final String title;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(title: title, trailing: '待接入'),
+        SizedBox(
+          height: 88,
+          child: Center(child: Text(hint, style: Tokens.caption)),
+        ),
+      ],
     );
   }
 }
