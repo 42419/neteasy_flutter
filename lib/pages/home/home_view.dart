@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../constants/app_constants.dart';
 import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/format.dart';
 import '../../viewmodels/home_block.dart';
 import '../../viewmodels/rank.dart';
 import '../../viewmodels/song.dart';
@@ -208,7 +210,7 @@ class HomeView extends StatelessWidget {
             SliverToBoxAdapter(child: _buildSectionHeader(title: '排行榜')),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 178,
+                height: 200,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(
@@ -234,7 +236,7 @@ class HomeView extends StatelessWidget {
             SliverList.builder(
               itemCount: store.daily.length,
               itemBuilder: (BuildContext context, int index) =>
-                  _buildSongRow(store.daily[index], index),
+                  _buildSongRow(context, store.daily[index], index),
             ),
           ],
 
@@ -269,8 +271,8 @@ class HomeView extends StatelessWidget {
             itemBuilder: (BuildContext context, int index) {
               final HomeCreative creative = block.creatives[index];
               return multi
-                  ? _buildSongListCard(creative)
-                  : _buildCoverCard(creative);
+                  ? _buildSongListCard(context, creative)
+                  : _buildCoverCard(context, creative);
             },
           ),
         ),
@@ -304,13 +306,12 @@ class HomeView extends StatelessWidget {
   // ---------- 卡片 ----------
 
   /// 封面卡：歌单、专辑这种「一张图 + 标题」的方块
-  Widget _buildCoverCard(HomeCreative creative) {
+  Widget _buildCoverCard(BuildContext context, HomeCreative creative) {
     final HomeResource? res = creative.primary;
     final String image = res?.imageUrl.isNotEmpty == true
         ? res!.imageUrl
         : creative.imageUrl;
     final String name = res?.displayName ?? '';
-    final List<String> labels = (res?.labelTexts ?? creative.labelTexts);
     return SizedBox(
       width: 150,
       child: Column(
@@ -318,31 +319,27 @@ class HomeView extends StatelessWidget {
         children: <Widget>[
           ClipRRect(
             borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-            child: AspectRatio(aspectRatio: 1, child: _buildCover(image)),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: _buildCover(context, image),
+            ),
           ),
           const SizedBox(height: 6),
-          Text(
-            name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.cardTitle,
-          ),
-          if (labels.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 2),
-            Text(
-              labels.join(' / '),
-              maxLines: 1,
+          Flexible(
+            child: Text(
+              name,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.caption,
+              style: AppTheme.cardTitle,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
   /// 一卡多歌：曲风推荐、新歌新碟，卡片里竖排 3 首
-  Widget _buildSongListCard(HomeCreative creative) {
+  Widget _buildSongListCard(BuildContext context, HomeCreative creative) {
     final List<HomeResource> songs = creative.resources.take(3).toList();
     return Container(
       width: 268,
@@ -366,7 +363,7 @@ class HomeView extends StatelessWidget {
               ),
               const Spacer(),
               const Icon(
-                Icons.play_circle_outline,
+                Icons.play_arrow_rounded,
                 size: 22,
                 color: AppTheme.textTertiary,
               ),
@@ -376,13 +373,18 @@ class HomeView extends StatelessWidget {
           for (final HomeResource song in songs)
             Expanded(
               child: Row(
+                mainAxisAlignment: .center,
                 children: <Widget>[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: SizedBox(
                       width: 36,
                       height: 36,
-                      child: _buildCover(song.imageUrl),
+                      child: _buildCover(
+                        context,
+                        song.imageUrl,
+                        logicalWidth: 36,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -412,6 +414,11 @@ class HomeView extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 22,
+                    color: AppTheme.textTertiary,
+                  )
                 ],
               ),
             ),
@@ -518,33 +525,44 @@ class HomeView extends StatelessWidget {
             ),
             child: Stack(
               children: <Widget>[
-                Positioned(
-                  left: 12,
-                  top: 40,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        rank.head,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          height: 1.1,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        rank.tail,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          height: 1.1,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                // 榜名居中大字
+                Center(
+                  child: Text(
+                    rank.name,
+                    textAlign: .center,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
+                // 左上角播放量
+                if (rank.playCount > 0)
+                  Positioned(
+                    left: 6,
+                    top: 6,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(
+                          Icons.headphones,
+                          size: 13,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 1),
+                        Text(
+                          formatCount(rank.playCount),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            height: 1.1,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const Positioned(
                   right: 3,
                   bottom: 3,
@@ -558,8 +576,9 @@ class HomeView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
+          // 卡片下方接前 3 首歌名，顿号连接
           Text(
-            rank.updateFrequency.isEmpty ? rank.name : rank.updateFrequency,
+            rank.trackLine,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppTheme.cardTitle,
@@ -569,7 +588,7 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  Widget _buildSongRow(Song song, int index) {
+  Widget _buildSongRow(BuildContext context, Song song, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.pagePadding,
@@ -592,7 +611,7 @@ class HomeView extends StatelessWidget {
             child: SizedBox(
               width: 44,
               height: 44,
-              child: _buildCover(song.coverUrl),
+              child: _buildCover(context, song.coverUrl, logicalWidth: 44),
             ),
           ),
           const SizedBox(width: 10),
@@ -630,34 +649,32 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 封面：先给底色再淡入，列表滚动时不闪白。
+  /// 封面：走磁盘 + 内存两级缓存，滚动回来不会再请求一次。
   ///
-  /// 服务端返回的封面是 `http://` 开头，Android 默认拦明文，
-  /// 这里统一升到 https（网易云 CDN 两套都支持）。
-  Widget _buildCover(String url) {
+  /// - 服务端返回的封面是 `http://` 开头，Android 默认拦明文，这里统一升到 https
+  /// - [logicalWidth] 用于限制解码尺寸：150dp 的卡片没必要按原图 1000px 解码，
+  ///   否则 ImageCache 很快被撑满、一滚动就开始淘汰重下
+  Widget _buildCover(
+    BuildContext context,
+    String url, {
+    double logicalWidth = 150,
+  }) {
     final String normalized = _normalizeUrl(url);
     if (normalized.isEmpty) {
       return const ColoredBox(color: AppTheme.placeholder);
     }
-    return Image.network(
-      normalized,
+    final int cacheWidth =
+        (logicalWidth * MediaQuery.devicePixelRatioOf(context)).round();
+    return CachedNetworkImage(
+      imageUrl: normalized,
       fit: BoxFit.cover,
-      frameBuilder:
-          (BuildContext context, Widget child, int? frame, bool wasSyncLoaded) {
-            if (wasSyncLoaded) {
-              return child;
-            }
-            return AnimatedOpacity(
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 180),
-              child: child,
-            );
-          },
-      errorBuilder: (
-        BuildContext context,
-        Object error,
-        StackTrace? stackTrace,
-      ) => const ColoredBox(color: AppTheme.placeholder),
+      memCacheWidth: cacheWidth,
+      maxWidthDiskCache: cacheWidth,
+      fadeInDuration: const Duration(milliseconds: 180),
+      placeholder: (BuildContext context, String url) =>
+          const ColoredBox(color: AppTheme.placeholder),
+      errorWidget: (BuildContext context, String url, Object error) =>
+          const ColoredBox(color: AppTheme.placeholder),
     );
   }
 

@@ -34,6 +34,9 @@ class HomeStore extends ChangeNotifier {
   int? get uid => _uid;
   bool get loggedIn => _uid != null;
 
+  /// 首页排行榜展示的卡片数
+  static const int homeRankCount = 6;
+
   /// 拉首页所需数据。下拉刷新、首次进入、登录状态变化都走这里。
   Future<void> load() async {
     _loading = true;
@@ -49,8 +52,7 @@ class HomeStore extends ChangeNotifier {
     }
     _blocks = (blocks as Ok<List<HomeBlock>>).value;
 
-    final Result<List<Rank>> ranks = await _repo.toplists();
-    _ranks = ranks is Ok<List<Rank>> ? ranks.value : const <Rank>[];
+    _ranks = await _loadRanks();
 
     // 未登录就不请求需要登录的接口，省一次必然失败的往返
     _uid = uidProvider?.call();
@@ -63,6 +65,33 @@ class HomeStore extends ChangeNotifier {
 
     _loading = false;
     _safeNotify();
+  }
+
+  /// 榜单：官方榜（新歌/热歌/原创/飙升）排前，其后按播放量补到 6 个；
+  /// 每个榜再补前 3 首歌名给卡片下方用。
+  Future<List<Rank>> _loadRanks() async {
+    final Result<List<Rank>> ranks = await _repo.toplists(limit: 20);
+    if (ranks is! Ok<List<Rank>>) {
+      return const <Rank>[];
+    }
+    final List<Rank> sorted = List<Rank>.of(ranks.value)
+      ..sort((Rank a, Rank b) {
+        final int byType = a.homeWeight.compareTo(b.homeWeight);
+        return byType != 0 ? byType : b.playCount.compareTo(a.playCount);
+      });
+    final List<Rank> top = sorted.take(homeRankCount).toList();
+
+    await Future.wait(
+      top.map((Rank rank) async {
+        final Result<List<String>> names = await _repo.toplistTrackNames(
+          rank.id,
+        );
+        if (names is Ok<List<String>>) {
+          rank.tracks = names.value;
+        }
+      }),
+    );
+    return top;
   }
 
   /// 异步返回后 store 可能已随页面销毁，别再调 notifyListeners

@@ -62,6 +62,24 @@ class NcmRepository {
     };
   }
 
+  /// 榜单前 N 首歌名（`/playlist/track/all`）：`/toplist` 的 `tracks` 是空的，
+  /// 首页榜单卡下方的三首歌名只能单独取。只带 limit 时响应约 7KB，比详情接口轻得多。
+  Future<Result<List<String>>> toplistTrackNames(
+    int id, {
+    int limit = 3,
+  }) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/playlist/track/all',
+      <String, String>{'id': '$id', 'limit': '$limit'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(
+        toTrackNames(value, limit: limit),
+      ),
+      Err(:final AppError error) => Err<List<String>>(error),
+    };
+  }
+
   /// 每日推荐歌曲（`/recommend/songs`，需要登录）
   Future<Result<List<Song>>> dailySongs() async {
     final Result<Map<String, dynamic>> result = await _api.get(

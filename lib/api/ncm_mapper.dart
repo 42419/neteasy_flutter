@@ -34,7 +34,9 @@ Rank? toRank(Map<dynamic, dynamic> json) {
     id: id,
     name: name,
     coverUrl: (json['coverImgUrl'] as String?) ?? '',
+    playCount: asInt(json['playCount']),
     updateFrequency: (json['updateFrequency'] as String?) ?? '',
+    toplistType: (json['ToplistType'] as String?) ?? '',
   );
 }
 
@@ -209,6 +211,28 @@ String _asId(Object? value) {
     return '';
   }
   return '$value';
+}
+
+/// `/playlist/track/all?limit=n` → 前 N 首歌名（榜单卡下方展示用）。
+List<String> toTrackNames(Map<dynamic, dynamic> json, {int limit = 3}) {
+  final Object? songs = json['songs'];
+  if (songs is! List) {
+    return const <String>[];
+  }
+  final List<String> names = <String>[];
+  for (final Object? raw in songs) {
+    if (raw is! Map) {
+      continue;
+    }
+    final String name = (raw['name'] as String?) ?? '';
+    if (name.isNotEmpty) {
+      names.add(name);
+    }
+    if (names.length >= limit) {
+      break;
+    }
+  }
+  return names;
 }
 
 /// 把列表字段映射成模型列表，丢弃解析失败的条目。

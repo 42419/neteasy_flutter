@@ -55,3 +55,6 @@ android/app/src/main/jniLibs/
 # Kotlin 增量编译的会话文件
 android/.kotlin/
 
+
+# Flutter DevTools 本地配置，不入库
+devtools_options.yaml
