@@ -1,6 +1,8 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../constants/app_constants.dart';
 import '../../stores/session_store.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/user_profile.dart';
@@ -180,26 +182,8 @@ class ProfileView extends StatelessWidget {
                         ),
                         if (profile.isVip) ...<Widget>[
                           const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.brand,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radiusChip,
-                              ),
-                            ),
-                            child: const Text(
-                              'VIP',
-                              style: TextStyle(
-                                fontSize: 9,
-                                height: 1.2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                          // 徽章是 36×16 的横条，按高度定尺寸
+                          SvgPicture.asset(AppConstants.vipBadge, height: 16),
                         ],
                       ],
                     ),

@@ -29,6 +29,10 @@ class AppConstants {
   static const String tabIconFollow = 'assets/icons/tab_follow.png';
   static const String tabIconMine = 'assets/icons/tab_mine.png';
 
+  /// VIP / SVIP 徽章：横条状，viewBox 36×16 与 40×16，按高度 16 显示
+  static const String vipBadge = 'assets/icons/vip/vip.svg';
+  static const String svipBadge = 'assets/icons/vip/svip.svg';
+
   /// 首页缺失模块的占位提示文案。
   /// 后端补齐路由后删掉对应条目，页面里直接替换成真实区块。
   static const String pendingCloudVillage = '待接入 /program/recommend';

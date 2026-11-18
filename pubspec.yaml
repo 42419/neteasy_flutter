@@ -38,6 +38,7 @@ dependencies:
   dio: ^5.11.1
   provider: ^6.1.5+1
   shared_preferences: ^2.5.6
+  flutter_svg: ^2.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -63,6 +64,7 @@ flutter:
   # 底部导航图标（黑色 + alpha，颜色由 Image.asset 的 color + BlendMode.srcIn 决定）
   assets:
     - assets/icons/
+    - assets/icons/vip/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
