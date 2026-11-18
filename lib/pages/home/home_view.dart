@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../constants/app_constants.dart';
 import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/format.dart';
 import '../../viewmodels/playlist.dart';
 import '../../viewmodels/rank.dart';
 import '../../viewmodels/song.dart';
@@ -46,6 +45,7 @@ class HomeView extends StatelessWidget {
     return SizedBox(
       height: AppTheme.tabBarHeight,
       child: Row(
+        crossAxisAlignment: .center,
         children: <Widget>[
           const SizedBox(width: 4),
           IconButton(
@@ -55,16 +55,19 @@ class HomeView extends StatelessWidget {
             tooltip: '菜单',
           ),
           Expanded(
-            child: Row(
-              children: <Widget>[
-                for (int i = 0; i < AppConstants.homeTabs.length; i++)
-                  Expanded(
-                    child: _buildTabItem(
-                      label: AppConstants.homeTabs[i],
-                      selected: i == AppConstants.homeDefaultTab,
+            child: SizedBox.expand(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  for (int i = 0; i < AppConstants.homeTabs.length; i++)
+                    Expanded(
+                      child: _buildTabItem(
+                        label: AppConstants.homeTabs[i],
+                        selected: i == AppConstants.homeDefaultTab,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
           IconButton(
@@ -80,29 +83,32 @@ class HomeView extends StatelessWidget {
   }
 
   Widget _buildTabItem({required String label, required bool selected}) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Text(
-          label,
-          maxLines: 1,
-          style: TextStyle(
-            fontSize: 16,
-            height: 1.2,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? AppTheme.textPrimary : AppTheme.textSecondary,
+    return Transform.translate(
+      offset: const Offset(0, 3),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            label,
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.2,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? AppTheme.textPrimary : AppTheme.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Container(
-          width: 20,
-          height: 3,
-          decoration: BoxDecoration(
-            color: selected ? AppTheme.brand : Colors.transparent,
-            borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 5),
+          Container(
+            width: 20,
+            height: 3,
+            decoration: BoxDecoration(
+              color: selected ? AppTheme.brand : Colors.transparent,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -169,6 +175,24 @@ class HomeView extends StatelessWidget {
                     title: '心动模式',
                     subtitle: '红心歌曲和相似歌单',
                     colors: const <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
+                  ),
+                  const SizedBox(width: 8),
+                  _buildEntryCard(
+                    title: '雷达歌单',
+                    subtitle: '反复聆听你爱的歌',
+                    colors: const <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
+                  ),
+                  const SizedBox(width: 8),
+                  _buildEntryCard(
+                    title: '漫游',
+                    subtitle: '多样频道无限畅听',
+                    colors: const <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
+                  ),
+                  const SizedBox(width: 8),
+                  _buildEntryCard(
+                    title: '相似歌曲',
+                    subtitle: '从你喜欢的歌听起',
+                    colors: const <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
                   ),
                 ],
               ),
@@ -409,15 +433,7 @@ class HomeView extends StatelessWidget {
               aspectRatio: 1,
               child: Stack(
                 fit: StackFit.expand,
-                children: <Widget>[
-                  _buildCover(playlist.coverUrl),
-                  if (playlist.playCount > 0)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: _buildPlayCountBadge(playlist.playCount),
-                    ),
-                ],
+                children: <Widget>[_buildCover(playlist.coverUrl)],
               ),
             ),
           ),
@@ -481,12 +497,12 @@ class HomeView extends StatelessWidget {
                   ),
                 ),
                 const Positioned(
-                  right: 10,
-                  bottom: 10,
+                  right: 3,
+                  bottom: 3,
                   child: Icon(
-                    Icons.play_arrow,
-                    size: 22,
-                    color: Colors.white70,
+                    Icons.play_arrow_rounded,
+                    size: 33,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -495,9 +511,9 @@ class HomeView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             rank.updateFrequency.isEmpty ? rank.name : rank.updateFrequency,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppTheme.caption,
+            style: AppTheme.cardTitle,
           ),
         ],
       ),
@@ -555,33 +571,10 @@ class HomeView extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.play_arrow, size: 20, color: AppTheme.textTertiary),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlayCountBadge(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(AppTheme.radiusChip),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(Icons.play_arrow, size: 10, color: Colors.white),
-          const SizedBox(width: 1),
-          Text(
-            formatCount(count),
-            style: const TextStyle(
-              fontSize: 10,
-              height: 1.1,
-              color: Colors.white,
-              // 播放量会随刷新变化，等宽数字避免宽度跳动
-              fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-            ),
+          const Icon(
+            Icons.play_arrow_rounded,
+            size: 20,
+            color: AppTheme.textTertiary,
           ),
         ],
       ),
