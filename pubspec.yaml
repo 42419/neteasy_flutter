@@ -37,7 +37,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.11.1
   provider: ^6.1.5+1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -59,6 +58,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 底部导航图标（黑色 + alpha，颜色由 Image.asset 的 color + BlendMode.srcIn 决定）
+  assets:
+    - assets/icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

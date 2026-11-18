@@ -8,7 +8,7 @@ class AppConstants {
   /// 后端地址（只监听本机回环）。
   static const String backendBaseUrl = 'http://127.0.0.1:$backendPort';
 
-  /// 首页二级 tab，照抄官方顺序。
+  /// 首页二级 tab
   /// 当前只有「推荐」有内容，其余仅保留选中态。
   static const List<String> homeTabs = <String>[
     '心动',
@@ -21,6 +21,13 @@ class AppConstants {
 
   /// 首页默认选中的 tab 下标（推荐）。
   static const int homeDefaultTab = 1;
+
+  /// 底部导航：三个图标、没有文字标签，颜色运行时着色（见 `assets/icons/`）。
+  static const List<String> bottomTabLabels = <String>['首页', '关注', '我的'];
+
+  static const String tabIconHome = 'assets/icons/tab_home.png';
+  static const String tabIconFollow = 'assets/icons/tab_follow.png';
+  static const String tabIconMine = 'assets/icons/tab_mine.png';
 
   /// 首页缺失模块的占位提示文案。
   /// 后端补齐路由后删掉对应条目，页面里直接替换成真实区块。

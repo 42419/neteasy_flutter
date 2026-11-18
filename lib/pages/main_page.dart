@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import 'home/home_view.dart';
 
-/// 主页面壳：底部三个 tab + 内容区。
+/// 主页面壳：底部三个图标 tab + 内容区。
 ///
+/// 官方导航栏只有图标、没有文字标签，选中态深色、未选中灰色。
 /// 用 IndexedStack 让 tab 切换不重建页面，数据与滚动位置都保留。
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -24,7 +26,7 @@ class _MainPageState extends State<MainPage> {
         index: _index,
         children: const <Widget>[
           HomeView(),
-          _PlaceholderPage(label: '云村'),
+          _PlaceholderPage(label: '关注'),
           _PlaceholderPage(label: '我的'),
         ],
       ),
@@ -43,21 +45,18 @@ class _MainPageState extends State<MainPage> {
             children: <Widget>[
               _buildNavItem(
                 index: 0,
-                icon: Icons.music_note_outlined,
-                selectedIcon: Icons.music_note,
-                label: '发现',
+                asset: AppConstants.tabIconHome,
+                label: AppConstants.bottomTabLabels[0],
               ),
               _buildNavItem(
                 index: 1,
-                icon: Icons.forum_outlined,
-                selectedIcon: Icons.forum,
-                label: '云村',
+                asset: AppConstants.tabIconFollow,
+                label: AppConstants.bottomTabLabels[1],
               ),
               _buildNavItem(
                 index: 2,
-                icon: Icons.person_outline,
-                selectedIcon: Icons.person,
-                label: '我的',
+                asset: AppConstants.tabIconMine,
+                label: AppConstants.bottomTabLabels[2],
               ),
             ],
           ),
@@ -66,32 +65,30 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  /// 图标是「黑色 + alpha」的透明位图，
+  /// 用 srcIn 直接染色，选中/未选中只改 color。
   Widget _buildNavItem({
     required int index,
-    required IconData icon,
-    required IconData selectedIcon,
+    required String asset,
     required String label,
   }) {
     final bool selected = _index == index;
-    final Color color = selected ? AppTheme.textPrimary : AppTheme.textTertiary;
     return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _index = index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(selected ? selectedIcon : icon, size: 24, color: color),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                height: 1.2,
-                color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              ),
+      child: Semantics(
+        label: label,
+        selected: selected,
+        button: true,
+        child: InkWell(
+          onTap: () => setState(() => _index = index),
+          child: Center(
+            child: Image.asset(
+              asset,
+              width: 24,
+              height: 24,
+              color: selected ? AppTheme.textPrimary : AppTheme.textTertiary,
+              colorBlendMode: BlendMode.srcIn,
             ),
-          ],
+          ),
         ),
       ),
     );
