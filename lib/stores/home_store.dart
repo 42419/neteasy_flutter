@@ -3,35 +3,46 @@ import 'package:flutter/foundation.dart';
 import '../api/ncm_repository.dart';
 import '../utils/result.dart';
 import '../viewmodels/home_block.dart';
+import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
-import '../viewmodels/song.dart';
 
 /// 首页状态。
 ///
 /// 主体是服务端按官方顺序返回的 `blocks`，页面按 blockCode 决定样式；
-/// 排行榜和每日推荐是独立接口，单独加载。
+/// 排行榜和「我的歌单」是独立接口，和区块并行加载。
 class HomeStore extends ChangeNotifier {
-  HomeStore(this._repo, {this.uidProvider});
+  HomeStore(this._repo, {this.uidProvider, this.nicknameProvider});
 
   final NcmRepository _repo;
 
   /// 当前登录用户 id 的来源；返回 null 表示未登录
   final int? Function()? uidProvider;
 
+  /// 当前登录用户昵称的来源
+  final String? Function()? nicknameProvider;
+
+  /// 首次加载才显示整页转圈；之后的刷新保留旧内容，别把列表和滚动位置换掉
   bool _loading = true;
   String? _error;
   List<HomeBlock> _blocks = const <HomeBlock>[];
   List<Rank> _ranks = const <Rank>[];
-  List<Song> _daily = const <Song>[];
+  List<Playlist> _myPlaylists = const <Playlist>[];
   int? _uid;
+  String _nickname = '';
   bool _disposed = false;
 
+  /// 并发的 load 只认最后一次：登录态恢复和登录回调可能先后各触发一次
+  int _generation = 0;
+
   bool get loading => _loading;
+
+  /// 只有「没有任何内容可显示」时才有值
   String? get error => _error;
   List<HomeBlock> get blocks => _blocks;
   List<Rank> get ranks => _ranks;
-  List<Song> get daily => _daily;
+  List<Playlist> get myPlaylists => _myPlaylists;
   int? get uid => _uid;
+  String get nickname => _nickname;
   bool get loggedIn => _uid != null;
 
   /// 首页排行榜展示的卡片数
@@ -39,30 +50,53 @@ class HomeStore extends ChangeNotifier {
 
   /// 拉首页所需数据。下拉刷新、首次进入、登录状态变化都走这里。
   Future<void> load() async {
-    _loading = true;
-    _error = null;
-    _safeNotify();
-
-    final Result<List<HomeBlock>> blocks = await _repo.homeBlocks();
-    if (blocks is Err<List<HomeBlock>>) {
-      _error = blocks.error.message;
-      _loading = false;
+    final int generation = ++_generation;
+    final bool hasContent = _blocks.isNotEmpty || _ranks.isNotEmpty;
+    if (!hasContent) {
+      _loading = true;
+      _error = null;
       _safeNotify();
+    }
+
+    final int? uid = uidProvider?.call();
+    final String nickname = nicknameProvider?.call() ?? '';
+
+    // 三个请求并行发出，再依次取结果
+    final Future<Result<List<HomeBlock>>> blocksFuture = _repo.homeBlocks(
+      refresh: true,
+    );
+    final Future<List<Rank>> ranksFuture = _loadRanks();
+    // 未登录不请求需要登录的接口，省一次必然失败的往返
+    final Future<Result<List<Playlist>>> mineFuture = uid == null
+        ? Future<Result<List<Playlist>>>.value(
+            const Ok<List<Playlist>>(<Playlist>[]),
+          )
+        : _repo.userPlaylists(uid);
+
+    final Result<List<HomeBlock>> blocks = await blocksFuture;
+    final List<Rank> ranks = await ranksFuture;
+    final Result<List<Playlist>> mine = await mineFuture;
+    if (generation != _generation) {
       return;
     }
-    _blocks = (blocks as Ok<List<HomeBlock>>).value;
 
-    _ranks = await _loadRanks();
-
-    // 未登录就不请求需要登录的接口，省一次必然失败的往返
-    _uid = uidProvider?.call();
-    if (_uid != null) {
-      final Result<List<Song>> daily = await _repo.dailySongs();
-      _daily = daily is Ok<List<Song>> ? daily.value : const <Song>[];
-    } else {
-      _daily = const <Song>[];
+    _uid = uid;
+    _nickname = nickname;
+    if (blocks is Ok<List<HomeBlock>>) {
+      _blocks = blocks.value;
+    }
+    // 榜单和歌单失败时保留旧数据，不用空列表覆盖
+    if (ranks.isNotEmpty) {
+      _ranks = ranks;
+    }
+    if (mine is Ok<List<Playlist>>) {
+      _myPlaylists = mine.value;
     }
 
+    final bool hasAny = _blocks.isNotEmpty || _ranks.isNotEmpty;
+    _error = (!hasAny && blocks is Err<List<HomeBlock>>)
+        ? blocks.error.message
+        : null;
     _loading = false;
     _safeNotify();
   }

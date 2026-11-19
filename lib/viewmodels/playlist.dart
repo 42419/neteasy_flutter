@@ -9,6 +9,7 @@ class Playlist {
     this.playCount = 0,
     this.trackCount = 0,
     this.copywriter,
+    this.specialType = 0,
   });
 
   final int id;
@@ -19,6 +20,11 @@ class Playlist {
 
   /// 官方推荐语（「推荐歌单」里偶尔带）
   final String? copywriter;
+
+  /// 歌单类型：5 = 我喜欢的音乐（官方 App 里统一显示成「我喜欢的音乐」）
+  final int specialType;
+
+  bool get isLikedMusic => specialType == 5;
 
   /// 是否算「热门」：播放量过百万。列表里用来决定要不要显示角标。
   bool get isPopular => playCount >= 1000000;

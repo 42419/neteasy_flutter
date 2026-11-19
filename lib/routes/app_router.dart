@@ -13,14 +13,18 @@ import '../utils/cookie_store.dart';
 /// 应用根 Widget：注入 Provider + 主题 + 根页面。
 ///
 /// 启动顺序有讲究：先 `session.restore()` 恢复登录态，再 `home.load()` 拉首页。
-/// 反过来的话首次 load 读到的 uid 还是 null，每日推荐会漏掉一次。
+/// 反过来的话首次 load 读到的 uid 还是 null，「我的歌单」会漏掉一次。
 Widget getRootWidget({required SharedPreferences prefs}) {
   final ApiClient api = ApiClient(cookieStore: CookieStore(prefs));
   final NcmRepository repo = NcmRepository(api);
   final SessionStore session = SessionStore(repo, api);
-  final HomeStore home = HomeStore(repo, uidProvider: () => session.uid);
+  final HomeStore home = HomeStore(
+    repo,
+    uidProvider: () => session.uid,
+    nicknameProvider: () => session.profile?.nickname,
+  );
 
-  // 登录/登出后首页要重拉：每日推荐依赖登录态
+  // 登录/登出后首页要重拉：「我的歌单」依赖登录态
   session.onLoginChanged = home.load;
   session.restore().whenComplete(home.load);
 

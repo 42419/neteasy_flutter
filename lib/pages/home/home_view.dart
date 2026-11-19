@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -7,13 +8,16 @@ import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../viewmodels/home_block.dart';
+import '../../viewmodels/playlist.dart';
 import '../../viewmodels/rank.dart';
-import '../../viewmodels/song.dart';
 
 /// 首页（发现音乐）。
 ///
-/// 主体由 `/homepage/block/page` 的 `blocks` 驱动：服务端按官方首页顺序返回区块，
-/// 这里按每个区块的卡片形态（单封面 / 一卡多歌）选择样式，未识别的区块走通用渲染。
+/// 主体由 `/homepage/block/page` 的 `blocks` 驱动，按 `blockCode` 选择渲染方式；
+/// 不认识的区块、没有内容的区块直接不画，不留空白。
+/// 排行榜和「我的歌单」是独立接口，按官方的位置插进区块之间。
+///
+/// 点击跳转暂未接入，卡片目前只负责展示。
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
@@ -25,6 +29,9 @@ class HomeView extends StatelessWidget {
     <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
   ];
 
+  /// 一行三条的列表（播客、有声书）每条的高度
+  static const double _rowHeight = 68;
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -35,7 +42,7 @@ class HomeView extends StatelessWidget {
       child: Column(
         children: <Widget>[
           _buildTopBar(theme, scheme),
-          Expanded(child: _buildBody(store, theme, scheme)),
+          Expanded(child: _buildBody(context, store)),
         ],
       ),
     );
@@ -116,7 +123,8 @@ class HomeView extends StatelessWidget {
 
   // ---------- 主体 ----------
 
-  Widget _buildBody(HomeStore store, ThemeData theme, ColorScheme scheme) {
+  Widget _buildBody(BuildContext context, HomeStore store) {
+    // 只有首次加载才整页转圈；下拉刷新时保留旧内容
     if (store.loading) {
       return const Center(
         child: SizedBox(
@@ -143,6 +151,7 @@ class HomeView extends StatelessWidget {
       );
     }
 
+    final List<Widget> sections = _buildSections(context, store);
     return RefreshIndicator(
       onRefresh: store.load,
       color: AppTheme.brand,
@@ -202,43 +211,8 @@ class HomeView extends StatelessWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
 
-          // 服务端区块：推荐歌单、曲风推荐、新歌新碟……顺序即官方顺序
-          for (final HomeBlock block in store.blocks)
-            SliverToBoxAdapter(child: _buildBlock(block)),
-
-          if (store.ranks.isNotEmpty) ...<Widget>[
-            SliverToBoxAdapter(child: _buildSectionHeader(title: '排行榜')),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 200,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.pagePadding,
-                  ),
-                  itemCount: store.ranks.length,
-                  separatorBuilder: (BuildContext context, int index) =>
-                      const SizedBox(width: 10),
-                  itemBuilder: (BuildContext context, int index) =>
-                      _buildRankCard(store.ranks[index], index),
-                ),
-              ),
-            ),
-          ],
-
-          if (store.daily.isNotEmpty) ...<Widget>[
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                title: '每日推荐',
-                trailing: '${store.daily.length} 首',
-              ),
-            ),
-            SliverList.builder(
-              itemCount: store.daily.length,
-              itemBuilder: (BuildContext context, int index) =>
-                  _buildSongRow(context, store.daily[index], index),
-            ),
-          ],
+          for (final Widget section in sections)
+            SliverToBoxAdapter(child: section),
 
           // 给阶段的悬浮迷你播放器留空间
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -247,40 +221,235 @@ class HomeView extends StatelessWidget {
     );
   }
 
+  /// 把服务端区块、排行榜、我的歌单排成官方的顺序：
+  /// 推荐歌单 → 曲风歌曲 → 排行榜 → 我的歌单 → 雷达歌单 → 其余区块。
+  /// 服务端没有的区块就跳过，排行榜和我的歌单找不到锚点时落在末尾。
+  List<Widget> _buildSections(BuildContext context, HomeStore store) {
+    final List<Widget> sections = <Widget>[];
+    bool ranksAdded = false;
+    bool mineAdded = false;
+
+    void addRanks() {
+      if (ranksAdded || store.ranks.isEmpty) {
+        return;
+      }
+      ranksAdded = true;
+      sections.add(_buildRankSection(store));
+    }
+
+    void addMine() {
+      if (mineAdded || store.myPlaylists.isEmpty) {
+        return;
+      }
+      mineAdded = true;
+      sections.add(_buildMyPlaylistSection(context, store));
+    }
+
+    for (final HomeBlock block in store.blocks) {
+      if (block.blockCode == HomeBlock.mgcPlaylist) {
+        addRanks();
+        addMine();
+      }
+      final Widget? widget = _buildBlock(context, block);
+      if (widget != null) {
+        sections.add(widget);
+      }
+      if (block.blockCode == HomeBlock.styleRcmd) {
+        addRanks();
+      }
+    }
+    addRanks();
+    addMine();
+    return sections;
+  }
+
   // ---------- 区块 ----------
 
-  /// 按卡片形态选样式：一卡多歌（曲风/新歌）用列表卡，其余用封面卡
-  Widget _buildBlock(HomeBlock block) {
-    final bool multi =
-        block.creatives.isNotEmpty && block.creatives.first.isMultiSong;
-    final double height = multi ? 178 : 200;
+  /// 按 blockCode 选渲染方式；不认识或没内容返回 null（整块不画）。
+  Widget? _buildBlock(BuildContext context, HomeBlock block) {
+    if (block.isEmpty) {
+      return null;
+    }
+    final Widget body;
+    switch (block.blockCode) {
+      case HomeBlock.playlistRcmd:
+        // 官方推荐歌单卡不带播放量，只有播放键
+        body = _buildCoverRow(context, block, showCount: false);
+      case HomeBlock.mgcPlaylist:
+      case HomeBlock.officialPlaylist:
+      case HomeBlock.videoPlaylist:
+        body = _buildCoverRow(context, block);
+      case HomeBlock.voicelistRcmd:
+        body = _buildCoverRow(
+          context,
+          block,
+          showCount: false,
+          showPlay: false,
+        );
+      case HomeBlock.styleRcmd:
+      case HomeBlock.newAlbumNewSong:
+        body = _buildSongRow(context, block);
+      case HomeBlock.musicPodcastRcmd:
+        body = _buildRowPages(
+          context,
+          block.creatives
+              .expand((HomeCreative c) => c.resources)
+              .map((HomeResource r) => _buildVoiceTile(context, r))
+              .toList(),
+        );
+      case HomeBlock.voicebookRcmd:
+        if (block.books.isEmpty) {
+          return null;
+        }
+        body = _buildRowPages(
+          context,
+          block.books
+              .map((HomeBook b) => _buildBookTile(context, b))
+              .toList(),
+        );
+      default:
+        return null;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (block.hasHeader) _buildSectionHeader(title: block.displayTitle),
-        SizedBox(
-          height: height,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.pagePadding,
-            ),
-            itemCount: block.creatives.length,
-            separatorBuilder: (BuildContext context, int index) =>
-                const SizedBox(width: 10),
-            itemBuilder: (BuildContext context, int index) {
-              final HomeCreative creative = block.creatives[index];
-              return multi
-                  ? _buildSongListCard(context, creative)
-                  : _buildCoverCard(context, creative);
-            },
+        if (block.hasHeader)
+          _buildSectionHeader(
+            title: block.displayTitle,
+            showMore: block.hasMore,
           ),
+        body,
+      ],
+    );
+  }
+
+  /// 横向滑动的一排
+  Widget _buildHorizontalList({
+    required double height,
+    required int itemCount,
+    required Widget Function(BuildContext context, int index) itemBuilder,
+  }) {
+    return SizedBox(
+      height: height,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.pagePadding),
+        itemCount: itemCount,
+        separatorBuilder: (BuildContext context, int index) =>
+            const SizedBox(width: 10),
+        itemBuilder: itemBuilder,
+      ),
+    );
+  }
+
+  /// 封面卡一排：歌单、热门播客
+  Widget _buildCoverRow(
+    BuildContext context,
+    HomeBlock block, {
+    bool showCount = true,
+    bool showPlay = true,
+  }) {
+    return _buildHorizontalList(
+      height: 200,
+      itemCount: block.creatives.length,
+      itemBuilder: (BuildContext context, int index) {
+        final HomeCreative creative = block.creatives[index];
+        final HomeResource? res = creative.primary;
+        final String image = res != null && res.imageUrl.isNotEmpty
+            ? res.imageUrl
+            : creative.imageUrl;
+        // 热门播客的 resources 是空的，名字只在 creative 上
+        final String resName = res?.displayName ?? '';
+        return _buildCoverCard(
+          context,
+          image: image,
+          name: resName.isNotEmpty ? resName : creative.title,
+          playCount: showCount ? (res?.playCount ?? 0) : 0,
+          showPlay: showPlay,
+        );
+      },
+    );
+  }
+
+  /// 一卡三首歌一排：曲风推荐、新歌新碟
+  Widget _buildSongRow(BuildContext context, HomeBlock block) {
+    return _buildHorizontalList(
+      height: 178,
+      itemCount: block.creatives.length,
+      itemBuilder: (BuildContext context, int index) =>
+          _buildSongListCard(context, block.creatives[index]),
+    );
+  }
+
+  /// 把一串条目按每 3 条一页横向铺开（播客节目、有声书）。
+  /// 页宽比屏幕窄一截，露出下一页的边，提示可以滑。
+  Widget _buildRowPages(BuildContext context, List<Widget> tiles) {
+    final List<List<Widget>> pages = <List<Widget>>[];
+    for (int i = 0; i < tiles.length; i += 3) {
+      pages.add(tiles.sublist(i, i + 3 > tiles.length ? tiles.length : i + 3));
+    }
+    final double pageWidth =
+        MediaQuery.sizeOf(context).width - AppTheme.pagePadding * 2 - 24;
+    return _buildHorizontalList(
+      height: _rowHeight * 3,
+      itemCount: pages.length,
+      itemBuilder: (BuildContext context, int index) => SizedBox(
+        width: pageWidth,
+        child: Column(
+          children: <Widget>[
+            for (final Widget tile in pages[index])
+              SizedBox(height: _rowHeight, child: tile),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------- 排行榜 / 我的歌单 ----------
+
+  Widget _buildRankSection(HomeStore store) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildSectionHeader(title: '排行榜', showMore: true),
+        _buildHorizontalList(
+          height: 200,
+          itemCount: store.ranks.length,
+          itemBuilder: (BuildContext context, int index) =>
+              _buildRankCard(store.ranks[index], index),
         ),
       ],
     );
   }
 
-  Widget _buildSectionHeader({required String title, String? trailing}) {
+  Widget _buildMyPlaylistSection(BuildContext context, HomeStore store) {
+    final String title = store.nickname.isEmpty
+        ? '我的歌单'
+        : '${store.nickname}的歌单';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildSectionHeader(title: title),
+        _buildHorizontalList(
+          height: 200,
+          itemCount: store.myPlaylists.length,
+          itemBuilder: (BuildContext context, int index) {
+            final Playlist playlist = store.myPlaylists[index];
+            return _buildCoverCard(
+              context,
+              image: playlist.coverUrl,
+              // 官方把「我喜欢的音乐」歌单统一显示成这个名字
+              name: playlist.isLikedMusic ? '我喜欢的音乐' : playlist.name,
+              showPlay: false,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// 区块标题。箭头只在这个区块有「更多」入口时才画。
+  Widget _buildSectionHeader({required String title, bool showMore = false}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
@@ -290,14 +459,20 @@ class HomeView extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Text(title, style: AppTheme.sectionTitle),
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 25,
-            color: AppTheme.textPrimary,
+          Flexible(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.sectionTitle,
+            ),
           ),
-          const Spacer(),
-          if (trailing != null) Text(trailing, style: AppTheme.caption),
+          if (showMore)
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 25,
+              color: AppTheme.textPrimary,
+            ),
         ],
       ),
     );
@@ -305,13 +480,15 @@ class HomeView extends StatelessWidget {
 
   // ---------- 卡片 ----------
 
-  /// 封面卡：歌单、专辑这种「一张图 + 标题」的方块
-  Widget _buildCoverCard(BuildContext context, HomeCreative creative) {
-    final HomeResource? res = creative.primary;
-    final String image = res?.imageUrl.isNotEmpty == true
-        ? res!.imageUrl
-        : creative.imageUrl;
-    final String name = res?.displayName ?? '';
+  /// 封面卡：歌单、播客这种「一张图 + 标题」的方块。
+  /// 左上播放量、右下播放键都按需显示。
+  Widget _buildCoverCard(
+    BuildContext context, {
+    required String image,
+    required String name,
+    int playCount = 0,
+    bool showPlay = true,
+  }) {
     return SizedBox(
       width: 150,
       child: Column(
@@ -321,7 +498,57 @@ class HomeView extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             child: AspectRatio(
               aspectRatio: 1,
-              child: _buildCover(context, image),
+              child: Stack(
+                children: <Widget>[
+                  Positioned.fill(child: _buildCover(context, image)),
+                  if (playCount > 0)
+                    Positioned(
+                      left: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusChip,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.headphones,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              formatCount(playCount),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                height: 1.2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (showPlay)
+                    const Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: Icon(
+                        Icons.play_arrow_rounded,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -338,12 +565,14 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 一卡多歌：曲风推荐、新歌新碟，卡片里竖排 3 首
+  /// 一卡多歌：曲风推荐、新歌新碟，卡片里竖排 3 首。
+  /// 小标题取 creative 自己的标题（新歌卡是「新歌」，曲风卡没有就不画）。
   Widget _buildSongListCard(BuildContext context, HomeCreative creative) {
     final List<HomeResource> songs = creative.resources.take(3).toList();
+    final bool hasTitle = creative.title.isNotEmpty;
     return Container(
-      width: 268,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      width: 290,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       decoration: BoxDecoration(
         color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
@@ -351,77 +580,205 @@ class HomeView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Text(
-                creative.creativeType == 'NEW_SONG_HOMEPAGE' ? '新歌' : '为你推荐',
+          if (hasTitle)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                creative.title,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const Spacer(),
-              const Icon(
-                Icons.play_arrow_rounded,
-                size: 22,
-                color: AppTheme.textTertiary,
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
+            ),
           for (final HomeResource song in songs)
-            Expanded(
-              child: Row(
-                mainAxisAlignment: .center,
+            Expanded(child: _buildSongTile(context, song)),
+        ],
+      ),
+    );
+  }
+
+  /// 歌曲行：封面 / 歌名 + VIP 徽章 / 收藏标签 + 歌手 / 播放键。
+  /// 标签（`subtitle`）是「超51%人收藏」这类文案，歌手要读 `artists`。
+  Widget _buildSongTile(BuildContext context, HomeResource song) {
+    final String tag = song.subtitle;
+    return Row(
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: _buildCover(context, song.imageUrl, logicalWidth: 40),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
                 children: <Widget>[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: _buildCover(
-                        context,
-                        song.imageUrl,
-                        logicalWidth: 36,
+                  Flexible(
+                    child: Text(
+                      song.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.25,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          song.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            height: 1.2,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        if (song.subtitle.isNotEmpty)
-                          Text(
-                            song.subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.caption,
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.play_arrow_rounded,
-                    size: 22,
-                    color: AppTheme.textTertiary,
-                  )
+                  if (song.isVip) ...<Widget>[
+                    const SizedBox(width: 4),
+                    SvgPicture.asset(AppConstants.vipBadge, height: 12),
+                  ],
                 ],
               ),
+              const SizedBox(height: 2),
+              Row(
+                children: <Widget>[
+                  if (tag.isNotEmpty) ...<Widget>[
+                    Flexible(child: _buildTagChip(tag)),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text(
+                      song.artistLine,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.caption,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(
+          Icons.play_arrow_rounded,
+          size: 22,
+          color: AppTheme.textTertiary,
+        ),
+      ],
+    );
+  }
+
+  /// 红色描边小标签：「超51%人收藏」「十万红心」
+  Widget _buildTagChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.brand.withValues(alpha: 0.55)),
+        borderRadius: BorderRadius.circular(AppTheme.radiusChip),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 9, height: 1.2, color: AppTheme.brand),
+      ),
+    );
+  }
+
+  /// 播客节目行：封面 / 标题（两行）/ 标签 + 所属播客
+  Widget _buildVoiceTile(BuildContext context, HomeResource voice) {
+    final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
+    return _buildMediaTile(
+      context,
+      cover: voice.imageUrl,
+      title: voice.displayName,
+      chip: label,
+      subtitle: voice.subtitle,
+    );
+  }
+
+  /// 有声书行：同播客，右侧多一个评分
+  Widget _buildBookTile(BuildContext context, HomeBook book) {
+    return _buildMediaTile(
+      context,
+      cover: book.coverUrl,
+      title: book.title,
+      subtitle: book.subtitle,
+      score: book.score,
+    );
+  }
+
+  Widget _buildMediaTile(
+    BuildContext context, {
+    required String cover,
+    required String title,
+    String chip = '',
+    String subtitle = '',
+    String score = '',
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: _buildCover(context, cover, logicalWidth: 56),
             ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.25,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (chip.isNotEmpty || subtitle.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: <Widget>[
+                      if (chip.isNotEmpty) ...<Widget>[
+                        Flexible(child: _buildTagChip(chip)),
+                        const SizedBox(width: 4),
+                      ],
+                      Flexible(
+                        child: Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.caption,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (score.isNotEmpty) ...<Widget>[
+            const SizedBox(width: 8),
+            Text(
+              score,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textTertiary,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -582,67 +939,6 @@ class HomeView extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppTheme.cardTitle,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSongRow(BuildContext context, Song song, int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.pagePadding,
-        vertical: 8,
-      ),
-      child: Row(
-        children: <Widget>[
-          SizedBox(
-            width: 20,
-            child: Text(
-              '${index + 1}',
-              style: AppTheme.caption.copyWith(
-                fontSize: 13,
-                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: _buildCover(context, song.coverUrl, logicalWidth: 44),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  song.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  song.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption,
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.play_arrow_rounded,
-            size: 20,
-            color: AppTheme.textTertiary,
           ),
         ],
       ),
