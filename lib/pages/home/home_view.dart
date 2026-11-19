@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
@@ -1133,13 +1131,14 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 封面：CDN 缩略图 + 32px 模糊预览的渐进加载。
+  /// 封面：按显示宽度向 CDN 要对应档位的缩略图，灰底占位，加载完淡入。
   ///
-  /// - 按显示宽度向 CDN 要对应档位（`?param=WxH` 会现裁成正方形）：
-  ///   150dp 卡取 450px（77KB → 24KB）、44dp 行取 150px（→ 4.9KB）
-  /// - 先挂 30px 版（约 0.7KB）并模糊，大图到了再淡入
+  /// - `?param=WxH` 会让 CDN 现裁成正方形：150dp 卡取 450px（77KB → 24KB）、
+  ///   48dp 行取 150px（→ 4.9KB）
+  /// - 一张封面只发一个请求。之前先挂 30px 模糊预览再换大图，一屏几十张封面
+  ///   请求数翻倍，滑动时更明显
   /// - 已带 `?imageView=...` 的 URL 不再叠 `param`（CDN 只认第一个处理指令），
-  ///   这类保持原样、只用灰底占位
+  ///   这类保持原样
   Widget _buildCover(
     BuildContext context,
     String url, {
@@ -1151,32 +1150,15 @@ class HomeView extends StatelessWidget {
     }
 
     final int preset = _coverPreset(logicalWidth);
-    final bool resizable = !normalized.contains('?');
-    final String fullUrl = resizable
-        ? _sizedUrl(normalized, preset)
-        : normalized;
+    final String fullUrl = normalized.contains('?')
+        ? normalized
+        : _sizedUrl(normalized, preset);
 
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        if (!resizable)
-          const ColoredBox(color: AppTheme.placeholder)
-        else
-          ImageFiltered(
-            // 30px 放大后是马赛克，糊一下才像「模糊预览」
-            imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: CachedNetworkImage(
-              imageUrl: _sizedUrl(normalized, _thumbPreset),
-              fit: BoxFit.cover,
-              httpHeaders: AppConstants.coverHeaders,
-              memCacheWidth: _thumbPreset * 2,
-              fadeInDuration: Duration.zero,
-              placeholder: (BuildContext context, String url) =>
-                  const ColoredBox(color: AppTheme.placeholder),
-              errorWidget: (BuildContext context, String url, Object error) =>
-                  const ColoredBox(color: AppTheme.placeholder),
-            ),
-          ),
+        // 底层灰色：图没到、加载失败时都露这一层
+        const ColoredBox(color: AppTheme.placeholder),
         CachedNetworkImage(
           imageUrl: fullUrl,
           fit: BoxFit.cover,
@@ -1195,9 +1177,6 @@ class HomeView extends StatelessWidget {
       ],
     );
   }
-
-  /// 模糊预览的边长，约 0.7KB
-  static const int _thumbPreset = 30;
 
   /// 显示宽度 → CDN 档位。按 3x 屏算，再大就是浪费流量。
   static int _coverPreset(double logicalWidth) {
