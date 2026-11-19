@@ -10,6 +10,7 @@ import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../viewmodels/home_block.dart';
+import '../../viewmodels/home_entry.dart';
 import '../../viewmodels/playlist.dart';
 import '../../viewmodels/rank.dart';
 
@@ -166,7 +167,7 @@ class HomeView extends StatelessWidget {
       color: AppTheme.brand,
       child: CustomScrollView(
         slivers: <Widget>[
-          // 三张入口大卡：官方是运营图，这里没有图源，用渐变顶住
+          // 入口大卡：登录态用 dragon ball 下发的真实图，拿不到就用内置配色兜底
           SliverToBoxAdapter(
             child: SizedBox(
               height: 200,
@@ -178,43 +179,9 @@ class HomeView extends StatelessWidget {
                   AppTheme.pagePadding,
                   0,
                 ),
-                children: <Widget>[
-                  _buildEntryCard(
-                    title: '每日推荐',
-                    subtitle: '今日限定好歌推荐',
-                    colors: const <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
-                  ),
-                  const SizedBox(width: 8),
-                  _buildEntryCard(
-                    title: '榜单推荐',
-                    subtitle: '云音乐官方 top 排...',
-                    colors: const <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
-                  ),
-                  const SizedBox(width: 8),
-                  _buildEntryCard(
-                    title: '心动模式',
-                    subtitle: '红心歌曲和相似歌单',
-                    colors: const <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
-                  ),
-                  const SizedBox(width: 8),
-                  _buildEntryCard(
-                    title: '雷达歌单',
-                    subtitle: '反复聆听你爱的歌',
-                    colors: const <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
-                  ),
-                  const SizedBox(width: 8),
-                  _buildEntryCard(
-                    title: '漫游',
-                    subtitle: '多样频道无限畅听',
-                    colors: const <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
-                  ),
-                  const SizedBox(width: 8),
-                  _buildEntryCard(
-                    title: '相似歌曲',
-                    subtitle: '从你喜欢的歌听起',
-                    colors: const <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
-                  ),
-                ],
+                children: store.entries.isEmpty
+                    ? _buildDefaultEntries(context)
+                    : _buildEntryRow(context, store.entries),
               ),
             ),
           ),
@@ -920,24 +887,110 @@ class HomeView extends StatelessWidget {
     );
   }
 
+  /// 内置的 6 张入口卡：dragon ball 没数据时兜底用
+  List<Widget> _buildDefaultEntries(BuildContext context) {
+    return <Widget>[
+      _buildEntryCard(
+        context: context,
+        title: '每日推荐',
+        subtitle: '今日限定好歌推荐',
+        colors: const <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
+      ),
+      const SizedBox(width: 8),
+      _buildEntryCard(
+        context: context,
+        title: '榜单推荐',
+        subtitle: '云音乐官方 top 排...',
+        colors: const <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
+      ),
+      const SizedBox(width: 8),
+      _buildEntryCard(
+        context: context,
+        title: '心动模式',
+        subtitle: '红心歌曲和相似歌单',
+        colors: const <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
+      ),
+      const SizedBox(width: 8),
+      _buildEntryCard(
+        context: context,
+        title: '雷达歌单',
+        subtitle: '反复聆听你爱的歌',
+        colors: const <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
+      ),
+      const SizedBox(width: 8),
+      _buildEntryCard(
+        context: context,
+        title: '漫游',
+        subtitle: '多样频道无限畅听',
+        colors: const <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
+      ),
+      const SizedBox(width: 8),
+      _buildEntryCard(
+        context: context,
+        title: '相似歌曲',
+        subtitle: '从你喜欢的歌听起',
+        colors: const <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
+      ),
+    ];
+  }
+
+  /// dragon ball 下发的真实入口卡
+  List<Widget> _buildEntryRow(BuildContext context, List<HomeEntry> entries) {
+    return <Widget>[
+      for (int i = 0; i < entries.length; i++) ...<Widget>[
+        _buildEntryCard(
+          context: context,
+          title: entries[i].title,
+          subtitle: entries[i].subtitle,
+          colors: _entryPalette(i),
+          imageUrl: entries[i].imageUrl,
+        ),
+        if (i != entries.length - 1) const SizedBox(width: 8),
+      ],
+    ];
+  }
+
+  /// 真实数据不带配色，按下标轮换一套，图没加载出来时不至于露白底
+  static const List<List<Color>> _entryPalettes = <List<Color>>[
+    <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
+    <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
+    <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
+    <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
+    <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
+    <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
+  ];
+
+  List<Color> _entryPalette(int index) =>
+      _entryPalettes[index % _entryPalettes.length];
+
   Widget _buildEntryCard({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required List<Color> colors,
+    String imageUrl = '',
   }) {
     return Container(
       width: 150,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: imageUrl.isEmpty ? null : AppTheme.placeholder,
+        gradient: imageUrl.isEmpty
+            ? LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: <Widget>[
+          // 有真实运营图就铺满，没有就靠上面的渐变
+          if (imageUrl.isNotEmpty)
+            Positioned.fill(
+              child: _buildCover(context, imageUrl, logicalWidth: 150),
+            ),
           // 底部压暗，保证文字可读
           Positioned.fill(
             child: DecoratedBox(

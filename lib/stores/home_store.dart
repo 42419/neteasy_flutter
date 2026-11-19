@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../api/ncm_repository.dart';
 import '../utils/result.dart';
 import '../viewmodels/home_block.dart';
+import '../viewmodels/home_entry.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 
@@ -25,6 +26,7 @@ class HomeStore extends ChangeNotifier {
   bool _loading = true;
   String? _error;
   List<HomeBlock> _blocks = const <HomeBlock>[];
+  List<HomeEntry> _entries = const <HomeEntry>[];
   List<Rank> _ranks = const <Rank>[];
   List<Playlist> _myPlaylists = const <Playlist>[];
   int? _uid;
@@ -39,6 +41,9 @@ class HomeStore extends ChangeNotifier {
   /// 只有「没有任何内容可显示」时才有值
   String? get error => _error;
   List<HomeBlock> get blocks => _blocks;
+
+  /// 顶部入口卡：登录态才有数据，空表示用页面内置的默认配置
+  List<HomeEntry> get entries => _entries;
   List<Rank> get ranks => _ranks;
   List<Playlist> get myPlaylists => _myPlaylists;
   int? get uid => _uid;
@@ -65,6 +70,7 @@ class HomeStore extends ChangeNotifier {
     final Future<Result<List<HomeBlock>>> blocksFuture = _repo.homeBlocks(
       refresh: true,
     );
+    final Future<Result<List<HomeEntry>>> entriesFuture = _repo.homeEntries();
     final Future<List<Rank>> ranksFuture = _loadRanks();
     // 未登录不请求需要登录的接口，省一次必然失败的往返
     final Future<Result<List<Playlist>>> mineFuture = uid == null
@@ -74,6 +80,7 @@ class HomeStore extends ChangeNotifier {
         : _repo.userPlaylists(uid);
 
     final Result<List<HomeBlock>> blocks = await blocksFuture;
+    final Result<List<HomeEntry>> entries = await entriesFuture;
     final List<Rank> ranks = await ranksFuture;
     final Result<List<Playlist>> mine = await mineFuture;
     if (generation != _generation) {
@@ -84,6 +91,10 @@ class HomeStore extends ChangeNotifier {
     _nickname = nickname;
     if (blocks is Ok<List<HomeBlock>>) {
       _blocks = blocks.value;
+    }
+    // 入口卡只有登录态才下发，空返回不覆盖已有数据
+    if (entries is Ok<List<HomeEntry>> && entries.value.isNotEmpty) {
+      _entries = entries.value;
     }
     // 榜单和歌单失败时保留旧数据，不用空列表覆盖
     if (ranks.isNotEmpty) {
