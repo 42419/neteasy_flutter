@@ -1183,7 +1183,7 @@ class HomeView extends StatelessWidget {
           memCacheWidth: preset,
           maxWidthDiskCache: preset,
           httpHeaders: AppConstants.coverHeaders,
-          fadeInDuration: const Duration(milliseconds: 100),
+          fadeInDuration: const Duration(milliseconds: 200),
           placeholder: (BuildContext context, String url) =>
               const SizedBox.shrink(),
           errorWidget: (BuildContext context, String url, Object error) {
