@@ -32,4 +32,15 @@ class AppConstants {
   /// VIP / SVIP 徽章：横条状，viewBox 36×16 与 40×16，按高度 16 显示
   static const String vipBadge = 'assets/icons/vip/vip.svg';
   static const String svipBadge = 'assets/icons/vip/svip.svg';
+
+  /// 请求网易云图片 CDN（p1/p2/p3/p4.music.126.net）时必须带的头。
+  ///
+  /// 它的 WAF 会拦 `Dart/3.x (dart:io)` 这类 UA 并直接回 403，同一个 URL 换成
+  /// 浏览器 UA 就是 200（实测）。Referer 一并带上，避免以后策略收紧。
+  static const Map<String, String> coverHeaders = <String, String>{
+    'User-Agent':
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Referer': 'https://music.163.com/',
+  };
 }

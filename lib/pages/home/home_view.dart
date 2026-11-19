@@ -690,15 +690,24 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 播客节目行：官方四行——所属播客（13 灰）/ 标题（16 加粗两行）/ 标签 + 简介。
-  ///
-  /// 标签与简介是**同一条会换行的文字流**（第二行会回到文字列左边，不是吊在简介下面），
-  /// 所以这里用 `Text.rich` 的 WidgetSpan，而不是 Row + Expanded。
+  /// 播客节目行：所属播客 / 节目标题 / 标签 + 简介。
+  /// 根据标题实际占用的行数，动态调整简介行数。
   Widget _buildVoiceTile(BuildContext context, HomeResource voice) {
     final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
+
+    final String title = voice.displayName;
+
+    const TextStyle titleStyle = TextStyle(
+      fontSize: 16,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+      color: AppTheme.textPrimary,
+    );
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
+        // 左侧封面
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: SizedBox(
@@ -707,64 +716,96 @@ class HomeView extends StatelessWidget {
             child: _buildCover(context, voice.imageUrl, logicalWidth: 80),
           ),
         ),
+
         const SizedBox(width: 12),
+
+        // 中间文字区域
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                voice.subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.2,
-                  color: AppTheme.textDescription,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                voice.displayName,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 根据实际可用宽度测量标题行数
+              final TextPainter titlePainter = TextPainter(
+                text: TextSpan(text: title, style: titleStyle),
+                textDirection: Directionality.of(context),
+                textScaler: MediaQuery.textScalerOf(context),
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 17,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 5),
-                Text.rich(
-                  TextSpan(
-                    children: <InlineSpan>[
-                      if (label.isNotEmpty)
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: _buildTagChip(label, filled: true),
-                          ),
-                        ),
-                      TextSpan(
-                        text: voice.desc,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.25,
-                          color: AppTheme.textDescription,
-                        ),
-                      ),
-                    ],
+              );
+
+              titlePainter.layout(maxWidth: constraints.maxWidth);
+
+              final int titleLineCount = titlePainter
+                  .computeLineMetrics()
+                  .length;
+
+              titlePainter.dispose();
+
+              final int descMaxLines = titleLineCount >= 2 ? 1 : 2;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // 所属播客名称
+                  Text(
+                    voice.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.2,
+                      color: AppTheme.textDescription,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
+
+                  const SizedBox(height: 5),
+
+                  // 节目标题
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+
+                  if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 5),
+
+                    // 标签 + 简介
+                    Text.rich(
+                      TextSpan(
+                        children: <InlineSpan>[
+                          if (label.isNotEmpty)
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: _buildTagChip(label, filled: true),
+                              ),
+                            ),
+                          TextSpan(
+                            text: voice.desc,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              height: 1.2,
+                              color: AppTheme.textDescription,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: descMaxLines,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
+
         const SizedBox(width: 8),
+
+        // 右侧播放按钮
         SizedBox(
           height: 80,
           child: Align(
@@ -1058,11 +1099,19 @@ class HomeView extends StatelessWidget {
       fit: BoxFit.cover,
       memCacheWidth: cacheWidth,
       maxWidthDiskCache: cacheWidth,
+      // CDN 的 WAF 会拦 Dart 默认 UA，必须换成浏览器 UA
+      httpHeaders: AppConstants.coverHeaders,
       fadeInDuration: const Duration(milliseconds: 180),
       placeholder: (BuildContext context, String url) =>
           const ColoredBox(color: AppTheme.placeholder),
-      errorWidget: (BuildContext context, String url, Object error) =>
-          const ColoredBox(color: AppTheme.placeholder),
+      // errorWidget: (BuildContext context, String url, Object error) =>
+      //     const ColoredBox(color: AppTheme.placeholder),
+      errorWidget: (context, url, error) {
+        debugPrint('封面加载失败 URL: $url');
+        debugPrint('封面加载失败原因: $error');
+
+        return const ColoredBox(color: AppTheme.placeholder);
+      },
     );
   }
 

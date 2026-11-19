@@ -123,7 +123,7 @@ class ProfileView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(12),
@@ -145,6 +145,8 @@ class ProfileView extends StatelessWidget {
                       : Image.network(
                           profile.avatarUrl,
                           fit: BoxFit.cover,
+                          // 头像同样在 music.126.net，CDN 会拦 Dart 默认 UA
+                          headers: AppConstants.coverHeaders,
                           errorBuilder:
                               (
                                 BuildContext context,
