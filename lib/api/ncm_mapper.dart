@@ -206,6 +206,7 @@ HomeResource _toResource(Map<dynamic, dynamic> rr) {
   final Map<dynamic, dynamic>? rui = _asMap(rr['uiElement']);
   final Map<dynamic, dynamic>? ext = _asMap(rr['resourceExtInfo']);
   final Map<dynamic, dynamic>? privilege = _asMap(ext?['songPrivilege']);
+  final Map<dynamic, dynamic>? dj = _asMap(ext?['djProgram']);
   return HomeResource(
     resourceType: (rr['resourceType'] as String?) ?? '',
     resourceId: _asId(rr['resourceId']),
@@ -214,10 +215,30 @@ HomeResource _toResource(Map<dynamic, dynamic> rr) {
     subtitle: _titleOf(rui, 'subTitle'),
     imageUrl: _imageOf(rui),
     labelTexts: _labelsOf(rui),
+    desc: _podcastDesc(dj?['description']),
     artists: _artistNames(ext?['artists']),
     isVip: asInt(privilege?['fee']) == 1,
     playCount: asInt(ext?['playCount']),
   );
+}
+
+/// 播客简介：只取第一行，并去掉开头的 `#话题#`。
+///
+/// 实测 `djProgram.description` 形如 `#音乐百科全说#8090经典老歌…\nThe brightest…`，
+/// 官方列表显示的是去掉话题标签和换行后的正文。
+String _podcastDesc(Object? raw) {
+  if (raw is! String) {
+    return '';
+  }
+  String text = raw.split('\n').first.trim();
+  while (text.startsWith('#')) {
+    final int end = text.indexOf('#', 1);
+    if (end < 0) {
+      break;
+    }
+    text = text.substring(end + 1).trim();
+  }
+  return text;
 }
 
 List<String> _artistNames(Object? raw) {

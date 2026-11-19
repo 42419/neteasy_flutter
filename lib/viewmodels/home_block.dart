@@ -108,6 +108,7 @@ class HomeResource {
     required this.subtitle,
     required this.imageUrl,
     required this.labelTexts,
+    this.desc = '',
     this.artists = const <String>[],
     this.isVip = false,
     this.playCount = 0,
@@ -127,6 +128,10 @@ class HomeResource {
   /// 歌曲里这是「超51%人收藏」「十万红心」这类**标签**，不是歌手（歌手见 [artists]）；
   /// 播客节目里是节目所属播客名。
   final String subtitle;
+
+  /// 播客节目简介，来自 `resourceExtInfo.djProgram.description`（已去掉开头的 #话题#）；
+  /// 歌曲和歌单没有这一段，是空串。
+  final String desc;
 
   final String imageUrl;
   final List<String> labelTexts;

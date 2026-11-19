@@ -29,8 +29,8 @@ class HomeView extends StatelessWidget {
     <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
   ];
 
-  /// 播客节目行高（沿用旧值，未按新版截图校准）
-  static const double _rowHeight = 68;
+  /// 播客节目行高：官方实测 92dp（封面 80 + 行间 12）
+  static const double _podcastRowHeight = 92;
 
   /// 歌曲行高：官方「近期云村热播」实测 58dp，封面 48
   static const double _songRowHeight = 58;
@@ -302,7 +302,7 @@ class HomeView extends StatelessWidget {
               .expand((HomeCreative c) => c.resources)
               .map((HomeResource r) => _buildVoiceTile(context, r))
               .toList(),
-          rowHeight: _rowHeight,
+          rowHeight: _podcastRowHeight,
         );
       case HomeBlock.voicebookRcmd:
         if (block.books.isEmpty) {
@@ -665,7 +665,7 @@ class HomeView extends StatelessWidget {
   /// 分类/标签小标签：透明底 + 蓝灰细描边（截图采样 #B6C3DD / #5975B2）。
   Widget _buildTagChip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         border: Border.all(color: AppTheme.chipBorder, width: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusChip),
@@ -683,15 +683,87 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 播客节目行：封面 / 标题（两行）/ 标签 + 所属播客
+  /// 播客节目行：官方四行——所属播客（13 灰）/ 标题（16 加粗两行）/ 标签 + 简介，
+  /// 封面 80、行高 92，右侧实心播放键。
   Widget _buildVoiceTile(BuildContext context, HomeResource voice) {
     final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
-    return _buildMediaTile(
-      context,
-      cover: voice.imageUrl,
-      title: voice.displayName,
-      chip: label,
-      subtitle: voice.subtitle,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 80,
+            height: 80,
+            child: _buildCover(context, voice.imageUrl, logicalWidth: 80),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                voice.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.3,
+                  color: AppTheme.textDescription,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                voice.displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 6),
+                Row(
+                  children: <Widget>[
+                    if (label.isNotEmpty) ...<Widget>[
+                      _buildTagChip(label),
+                      const SizedBox(width: 3),
+                    ],
+                    Flexible(
+                      child: Text(
+                        voice.desc,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.3,
+                          color: AppTheme.textDescription,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 80,
+          child: Align(
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.play_arrow_rounded,
+              size: 26,
+              color: AppTheme.iconPlay,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -746,15 +818,14 @@ class HomeView extends StatelessWidget {
                   children: <Widget>[
                     if (book.category.isNotEmpty) ...<Widget>[
                       _buildTagChip(book.category),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 3),
                     ],
                     if (book.playCount.isNotEmpty) ...<Widget>[
                       const Icon(
-                        Icons.play_arrow_outlined,
-                        size: 12,
+                        Icons.play_arrow_rounded,
+                        size: 15,
                         color: AppTheme.textTertiary,
                       ),
-                      const SizedBox(width: 2),
                       Text(
                         book.playCount,
                         style: const TextStyle(
@@ -789,69 +860,6 @@ class HomeView extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-
-  /// 播客节目行：封面 56 + 两行标题 + 标签 + 所属播客。
-  Widget _buildMediaTile(
-    BuildContext context, {
-    required String cover,
-    required String title,
-    String chip = '',
-    String subtitle = '',
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: <Widget>[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: SizedBox(
-              width: 56,
-              height: 56,
-              child: _buildCover(context, cover, logicalWidth: 56),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.25,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                if (chip.isNotEmpty || subtitle.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 3),
-                  Row(
-                    children: <Widget>[
-                      if (chip.isNotEmpty) ...<Widget>[
-                        Flexible(child: _buildTagChip(chip)),
-                        const SizedBox(width: 4),
-                      ],
-                      Flexible(
-                        child: Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.caption,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -902,7 +910,6 @@ class HomeView extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     height: 1.2,
-                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),

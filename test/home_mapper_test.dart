@@ -132,4 +132,37 @@ void main() {
     expect(book.books.single.playCount, '49.2万');
     expect(book.books.single.score, '9.2');
   });
+
+  test('播客节目：播客名在 subTitle，简介取第一行并去掉 #话题#', () {
+    final List<HomeBlock> blocks = toHomeBlocks(<String, dynamic>{
+      'data': {
+        'blocks': <Map<String, dynamic>>[
+          {
+            'blockCode': 'HOMEPAGE_MUSIC_PODCAST_RCMD_BLOCK',
+            'creatives': <Map<String, dynamic>>[
+              {
+                'resources': <Map<String, dynamic>>[
+                  {
+                    'resourceType': 'voice',
+                    'resourceId': 3068191060,
+                    'uiElement': {
+                      'mainTitle': {'title': '8090经典老歌，你听过几首？'},
+                      'subTitle': {'title': '种草吧！热歌'},
+                    },
+                    'resourceExtInfo': {
+                      'djProgram': {'description': '#音乐百科全说#8090经典老歌\n第二行不展示'},
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    final HomeResource voice = blocks.single.creatives.single.resources.single;
+    expect(voice.displayName, '8090经典老歌，你听过几首？');
+    expect(voice.subtitle, '种草吧！热歌');
+    expect(voice.desc, '8090经典老歌');
+  });
 }

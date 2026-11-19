@@ -67,7 +67,6 @@ class AppTheme {
   static const TextStyle sectionTitle = TextStyle(
     fontSize: 17,
     height: 1.3,
-    fontWeight: FontWeight.w600,
     color: textPrimary,
   );
 
