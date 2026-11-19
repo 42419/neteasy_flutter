@@ -30,6 +30,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 和 release 分开包名：小米这类 ROM 按包名记高刷档位，debug 跑不满
+            // 120 帧被记成 60 之后，同包名的 release 装上去会被沿用这条记录。
+            // 加后缀后两者是两个独立应用，各记各的（代价：登录态不互通）。
+            applicationIdSuffix = ".debug"
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
