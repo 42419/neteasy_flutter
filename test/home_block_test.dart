@@ -117,7 +117,10 @@ void main() {
 
   test('缺失字段不抛异常：没有 blocks / 空资源', () {
     expect(toHomeBlocks(<String, dynamic>{}), isEmpty);
-    expect(toHomeBlocks(<String, dynamic>{'data': <String, dynamic>{}}), isEmpty);
+    expect(
+      toHomeBlocks(<String, dynamic>{'data': <String, dynamic>{}}),
+      isEmpty,
+    );
     final List<HomeBlock> blocks = toHomeBlocks(<String, dynamic>{
       'data': {
         'blocks': <Map<String, dynamic>>[

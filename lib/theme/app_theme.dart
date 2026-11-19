@@ -28,6 +28,9 @@ class AppTheme {
   static const Color chipBorder = Color(0xFFB6C3DD);
   static const Color chipText = Color(0xFF5975B2);
 
+  /// 播客标签的浅蓝填充底色（无描边）
+  static const Color chipFill = Color(0xFFE5EAF2);
+
   /// 列表条目的灰色简介行
   static const Color textDescription = Color(0xFF6B6C7A);
 

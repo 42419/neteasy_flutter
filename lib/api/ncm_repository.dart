@@ -39,7 +39,10 @@ class NcmRepository {
   }
 
   /// 用户的歌单（`/user/playlist`）：自建 + 收藏，第一个通常是「我喜欢的音乐」。
-  Future<Result<List<Playlist>>> userPlaylists(int uid, {int limit = 30}) async {
+  Future<Result<List<Playlist>>> userPlaylists(
+    int uid, {
+    int limit = 30,
+  }) async {
     final Result<Map<String, dynamic>> result = await _api.get(
       '/user/playlist',
       <String, String>{'uid': '$uid', 'limit': '$limit'},

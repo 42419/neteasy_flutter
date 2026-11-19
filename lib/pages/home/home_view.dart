@@ -29,14 +29,15 @@ class HomeView extends StatelessWidget {
     <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
   ];
 
-  /// 播客节目行高：官方实测 92dp（封面 80 + 行间 12）
-  static const double _podcastRowHeight = 92;
+  /// 播客节目行高：官方行距约 92dp（封面 80）。这里放到 100，
+  /// 是为了让「两行标题 + 两行简介」的极端情况不溢出。
+  static const double _podcastRowHeight = 100;
 
   /// 歌曲行高：官方「近期云村热播」实测 58dp，封面 48
   static const double _songRowHeight = 58;
 
   /// 有声书行高：官方实测 90dp，封面 64，文字占三行（标题 / 简介 / 分类+播放量）
-  static const double _bookRowHeight = 90;
+  static const double _bookRowHeight = 92;
 
   @override
   Widget build(BuildContext context) {
@@ -662,12 +663,18 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 分类/标签小标签：透明底 + 蓝灰细描边（截图采样 #B6C3DD / #5975B2）。
-  Widget _buildTagChip(String text) {
+  /// 分类/标签小标签。
+  ///
+  /// 官方两套：有声书分类是透明底 + 蓝灰细描边，播客标签是浅蓝填充（#E5EAF2）。
+  /// 文字都取 #5975B2。
+  Widget _buildTagChip(String text, {bool filled = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: EdgeInsets.symmetric(horizontal: filled ? 4 : 2, vertical: 1),
       decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.chipBorder, width: 0.5),
+        color: filled ? AppTheme.chipFill : null,
+        border: filled
+            ? null
+            : Border.all(color: AppTheme.chipBorder, width: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusChip),
       ),
       child: Text(
@@ -683,15 +690,17 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 播客节目行：官方四行——所属播客（13 灰）/ 标题（16 加粗两行）/ 标签 + 简介，
-  /// 封面 80、行高 92，右侧实心播放键。
+  /// 播客节目行：官方四行——所属播客（13 灰）/ 标题（16 加粗两行）/ 标签 + 简介。
+  ///
+  /// 标签与简介是**同一条会换行的文字流**（第二行会回到文字列左边，不是吊在简介下面），
+  /// 所以这里用 `Text.rich` 的 WidgetSpan，而不是 Row + Expanded。
   Widget _buildVoiceTile(BuildContext context, HomeResource voice) {
     final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           child: SizedBox(
             width: 80,
             height: 80,
@@ -709,43 +718,47 @@ class HomeView extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
-                  height: 1.3,
+                  height: 1.2,
                   color: AppTheme.textDescription,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 voice.displayName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.25,
+                  fontSize: 17,
+                  height: 1.2,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
                 ),
               ),
               if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 6),
-                Row(
-                  children: <Widget>[
-                    if (label.isNotEmpty) ...<Widget>[
-                      _buildTagChip(label),
-                      const SizedBox(width: 3),
-                    ],
-                    Flexible(
-                      child: Text(
-                        voice.desc,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 5),
+                Text.rich(
+                  TextSpan(
+                    children: <InlineSpan>[
+                      if (label.isNotEmpty)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: _buildTagChip(label, filled: true),
+                          ),
+                        ),
+                      TextSpan(
+                        text: voice.desc,
                         style: const TextStyle(
-                          fontSize: 14,
-                          height: 1.3,
+                          fontSize: 13,
+                          height: 1.25,
                           color: AppTheme.textDescription,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ],
@@ -772,20 +785,21 @@ class HomeView extends StatelessWidget {
   /// 评分在官方用的是自有字体，这里只用字号/字重/颜色近似，不追求字形一致。
   Widget _buildBookTile(BuildContext context, HomeBook book) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: .center,
       children: <Widget>[
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           child: SizedBox(
             width: 64,
-            height: 64,
+            height: 80,
             child: _buildCover(context, book.coverUrl, logicalWidth: 64),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: .center,
+            crossAxisAlignment: .start,
             children: <Widget>[
               Text(
                 book.title,
@@ -799,7 +813,7 @@ class HomeView extends StatelessWidget {
                 ),
               ),
               if (book.desc.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   book.desc,
                   maxLines: 1,
@@ -813,12 +827,12 @@ class HomeView extends StatelessWidget {
               ],
               if (book.category.isNotEmpty ||
                   book.playCount.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 8),
+                const SizedBox(height: 3),
                 Row(
                   children: <Widget>[
                     if (book.category.isNotEmpty) ...<Widget>[
                       _buildTagChip(book.category),
-                      const SizedBox(width: 3),
+                      const SizedBox(width: 8),
                     ],
                     if (book.playCount.isNotEmpty) ...<Widget>[
                       const Icon(
@@ -843,18 +857,18 @@ class HomeView extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         if (book.score.isNotEmpty)
-          // 与封面垂直居中，和官方一致
+          // 与封面（64×80）垂直居中，和官方一致
           SizedBox(
-            height: 64,
+            height: 80,
             child: Align(
               alignment: Alignment.center,
               child: Text(
                 book.score,
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 21,
                   height: 1.1,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textTertiary,
+                  color: AppTheme.textDescription,
                 ),
               ),
             ),
