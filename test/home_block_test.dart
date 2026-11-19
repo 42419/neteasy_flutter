@@ -91,7 +91,8 @@ void main() {
     final HomeBlock block = toHomeBlocks(_payload)[0];
     final HomeCreative creative = block.creatives.single;
     expect(creative.creativeType, 'list');
-    expect(creative.isMultiSong, isFalse);
+    // 歌单卡只有一个资源，不是一卡多歌
+    expect(creative.resources.length, 1);
     expect(creative.action, startsWith('orpheus://playlist/'));
 
     final HomeResource? res = creative.primary;
@@ -107,7 +108,6 @@ void main() {
     final HomeBlock block = toHomeBlocks(_payload)[1];
     final HomeCreative creative = block.creatives.single;
     expect(creative.creativeType, 'SONG_LIST_HOMEPAGE');
-    expect(creative.isMultiSong, isTrue);
     expect(creative.resources.length, 2);
     expect(creative.resources[0].isSong, isTrue);
     expect(creative.resources[0].displayName, 'Lonely');
