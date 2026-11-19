@@ -80,6 +80,7 @@ Map<String, dynamic> _fixture() {
                     <String, dynamic>{
                       'resourceId': 1480999998,
                       'title': '给孩子的海洋大百科',
+                      'desc': '让孩子足不出户领略中国壮美山河',
                       'coverUrl': 'http://p4.music.126.net/a.jpg',
                       'score': '9.2',
                       'playCount': '49.2万',
@@ -125,7 +126,10 @@ void main() {
     expect(book.displayTitle, 'SVIP专享有声书免费听');
     expect(book.hasMore, isTrue);
     expect(book.books.single.title, '给孩子的海洋大百科');
-    expect(book.books.single.subtitle, '学习教育 · 49.2万次播放');
+    // 官方三行分别是 title / desc / 分类 + 播放量，desc 是接口的 desc 字段
+    expect(book.books.single.desc, '让孩子足不出户领略中国壮美山河');
+    expect(book.books.single.category, '学习教育');
+    expect(book.books.single.playCount, '49.2万');
     expect(book.books.single.score, '9.2');
   });
 }

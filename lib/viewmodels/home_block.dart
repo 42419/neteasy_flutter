@@ -148,12 +148,15 @@ class HomeResource {
 }
 
 /// 有声书条目（`HOMEPAGE_VOICEBOOK_RCMD` 的 `dslData`）。
+///
+/// 一个条目在官方界面占三行：标题 / 灰色简介 [desc] / 分类标签 + 播放量，右侧评分。
 class HomeBook {
   const HomeBook({
     required this.id,
     required this.title,
     required this.coverUrl,
     required this.category,
+    required this.desc,
     required this.playCount,
     required this.score,
   });
@@ -165,18 +168,12 @@ class HomeBook {
   /// 分类，如「学习教育」
   final String category;
 
+  /// 简介，如「让孩子足不出户领略中国壮美山河」；接口字段是 `desc`，一般都有
+  final String desc;
+
   /// 已经格式化好的播放量，如「49.2万」
   final String playCount;
 
-  /// 评分，如「9.2」；没有评分是空串
+  /// 评分，如「9.2」；部分条目没有评分，是空串
   final String score;
-
-  /// 「学习教育 · 49.2万次播放」，缺哪段省哪段
-  String get subtitle {
-    final List<String> parts = <String>[
-      if (category.isNotEmpty) category,
-      if (playCount.isNotEmpty) '$playCount次播放',
-    ];
-    return parts.join(' · ');
-  }
 }

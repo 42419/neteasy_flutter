@@ -24,6 +24,16 @@ class AppTheme {
   /// 图片未加载完的底色
   static const Color placeholder = Color(0xFFE6E9EE);
 
+  /// 分类/标签 chip：官方是透明底 + 细描边（截图采样 #B6C3DD / #5975B2）
+  static const Color chipBorder = Color(0xFFB6C3DD);
+  static const Color chipText = Color(0xFF5975B2);
+
+  /// 列表条目的灰色简介行
+  static const Color textDescription = Color(0xFF6B6C7A);
+
+  /// 行尾的实心播放三角
+  static const Color iconPlay = Color(0xFF4A4A55);
+
   // ---------- 间距 ----------
 
   /// 区块之间的竖向间距

@@ -29,8 +29,14 @@ class HomeView extends StatelessWidget {
     <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
   ];
 
-  /// 一行三条的列表（播客、有声书）每条的高度
+  /// 播客节目行高（沿用旧值，未按新版截图校准）
   static const double _rowHeight = 68;
+
+  /// 歌曲行高：官方「近期云村热播」实测 58dp，封面 48
+  static const double _songRowHeight = 58;
+
+  /// 有声书行高：官方实测 90dp，封面 64，文字占三行（标题 / 简介 / 分类+播放量）
+  static const double _bookRowHeight = 90;
 
   @override
   Widget build(BuildContext context) {
@@ -296,6 +302,7 @@ class HomeView extends StatelessWidget {
               .expand((HomeCreative c) => c.resources)
               .map((HomeResource r) => _buildVoiceTile(context, r))
               .toList(),
+          rowHeight: _rowHeight,
         );
       case HomeBlock.voicebookRcmd:
         if (block.books.isEmpty) {
@@ -304,6 +311,7 @@ class HomeView extends StatelessWidget {
         body = _buildRowPages(
           context,
           block.books.map((HomeBook b) => _buildBookTile(context, b)).toList(),
+          rowHeight: _bookRowHeight,
         );
       default:
         return null;
@@ -370,40 +378,55 @@ class HomeView extends StatelessWidget {
   }
 
   /// 一页三首歌：曲风推荐、新歌新碟。
-  /// 和播客、有声书共用同一套行样式与分页节奏——每张卡原本的 3 首歌拆成 3 行，
-  /// 3 行一页横向翻，不再用「一卡套三首」的窄卡片。
+  /// 和播客、有声书共用同一套分页：每张卡原本的 3 首歌拆成 3 行，3 行一页横向翻。
   Widget _buildSongPages(BuildContext context, HomeBlock block) {
     final List<Widget> tiles = <Widget>[
       for (final HomeCreative creative in block.creatives)
         for (final HomeResource song in creative.resources.take(3))
           _buildSongTile(context, song),
     ];
-    // 区块里一首歌都没有时不占 204 的空白
+    // 区块里一首歌都没有时不占空白
     if (tiles.isEmpty) {
       return const SizedBox.shrink();
     }
-    return _buildRowPages(context, tiles);
+    return _buildRowPages(context, tiles, rowHeight: _songRowHeight);
   }
 
-  /// 把一串条目按每 3 条一页横向铺开（播客节目、有声书）。
-  /// 页宽比屏幕窄一截，露出下一页的边，提示可以滑。
-  Widget _buildRowPages(BuildContext context, List<Widget> tiles) {
+  /// 把一串条目按每 3 条一页横向铺开（歌曲、播客节目、有声书）。
+  ///
+  /// 几何照官方实测：页宽 = 屏幕宽 − 32，页内左 16 / 右 8，页与页之间**不留间隙**。
+  /// 这样下一页的封面只在屏幕右缘露出约 16dp，三组宽度完全一致。
+  Widget _buildRowPages(
+    BuildContext context,
+    List<Widget> tiles, {
+    required double rowHeight,
+  }) {
     final List<List<Widget>> pages = <List<Widget>>[];
     for (int i = 0; i < tiles.length; i += 3) {
       pages.add(tiles.sublist(i, i + 3 > tiles.length ? tiles.length : i + 3));
     }
     final double pageWidth =
-        MediaQuery.sizeOf(context).width - AppTheme.pagePadding * 2 - 24;
-    return _buildHorizontalList(
-      height: _rowHeight * 3,
-      itemCount: pages.length,
-      itemBuilder: (BuildContext context, int index) => SizedBox(
-        width: pageWidth,
-        child: Column(
-          children: <Widget>[
-            for (final Widget tile in pages[index])
-              SizedBox(height: _rowHeight, child: tile),
-          ],
+        MediaQuery.sizeOf(context).width - AppTheme.pagePadding * 2;
+    return SizedBox(
+      height: rowHeight * 3,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: pages.length,
+        itemBuilder: (BuildContext context, int index) => SizedBox(
+          width: pageWidth,
+          child: Padding(
+            padding: const EdgeInsets.only(
+              left: AppTheme.pagePadding,
+              right: 8,
+            ),
+            child: Column(
+              children: <Widget>[
+                for (final Widget tile in pages[index])
+                  SizedBox(height: rowHeight, child: tile),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -569,34 +592,93 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 歌曲行：封面 / 歌名 + VIP 徽章 / 收藏标签 + 歌手 / 播放键。
+  /// 歌曲行：官方「近期云村热播」样式。
+  /// 封面 48 / 歌名一行 / 标签 + 歌手 / 右侧实心播放三角。
   /// 标签（`subtitle`）是「超51%人收藏」这类文案，歌手要读 `artists`。
-  /// 排版走 [ _buildMediaTile ]，与播客、有声书保持同一套行样式。
   Widget _buildSongTile(BuildContext context, HomeResource song) {
-    return _buildMediaTile(
-      context,
-      cover: song.imageUrl,
-      title: song.displayName,
-      chip: song.subtitle,
-      subtitle: song.artistLine,
-      vip: song.isVip,
-      showPlay: true,
+    return Row(
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: _buildCover(context, song.imageUrl, logicalWidth: 48),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Text(
+                      song.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.3,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (song.isVip) ...<Widget>[
+                    const SizedBox(width: 4),
+                    SvgPicture.asset(AppConstants.vipBadge, height: 12),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: <Widget>[
+                  if (song.subtitle.isNotEmpty) ...<Widget>[
+                    Flexible(child: _buildTagChip(song.subtitle)),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(
+                      song.artistLine,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.caption,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(
+          Icons.play_arrow_rounded,
+          size: 26,
+          color: AppTheme.iconPlay,
+        ),
+      ],
     );
   }
 
-  /// 红色描边小标签：「超51%人收藏」「十万红心」
+  /// 分类/标签小标签：透明底 + 蓝灰细描边（截图采样 #B6C3DD / #5975B2）。
   Widget _buildTagChip(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.brand.withValues(alpha: 0.55)),
+        border: Border.all(color: AppTheme.chipBorder, width: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusChip),
       ),
       child: Text(
         text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 9, height: 1.2, color: AppTheme.brand),
+        style: const TextStyle(
+          fontSize: 10,
+          height: 1.2,
+          color: AppTheme.chipText,
+        ),
       ),
     );
   }
@@ -613,45 +695,111 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  /// 有声书行：同播客，右侧多一个评分
+  /// 有声书行：官方三行——标题（两行）/ 灰色简介 / 分类标签 + 播放量，右侧评分。
+  ///
+  /// 评分在官方用的是自有字体，这里只用字号/字重/颜色近似，不追求字形一致。
   Widget _buildBookTile(BuildContext context, HomeBook book) {
-    return _buildMediaTile(
-      context,
-      cover: book.coverUrl,
-      title: book.title,
-      subtitle: book.subtitle,
-      score: book.score,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 64,
+            height: 64,
+            child: _buildCover(context, book.coverUrl, logicalWidth: 64),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                book.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              if (book.desc.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 4),
+                Text(
+                  book.desc,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.3,
+                    color: AppTheme.textDescription,
+                  ),
+                ),
+              ],
+              if (book.category.isNotEmpty ||
+                  book.playCount.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 8),
+                Row(
+                  children: <Widget>[
+                    if (book.category.isNotEmpty) ...<Widget>[
+                      _buildTagChip(book.category),
+                      const SizedBox(width: 6),
+                    ],
+                    if (book.playCount.isNotEmpty) ...<Widget>[
+                      const Icon(
+                        Icons.play_arrow_outlined,
+                        size: 12,
+                        color: AppTheme.textTertiary,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        book.playCount,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.2,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        if (book.score.isNotEmpty)
+          // 与封面垂直居中，和官方一致
+          SizedBox(
+            height: 64,
+            child: Align(
+              alignment: Alignment.center,
+              child: Text(
+                book.score,
+                style: const TextStyle(
+                  fontSize: 22,
+                  height: 1.1,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textTertiary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  /// 一页三行的通用行：播客、有声书、歌曲都用它，行高与排版保持一致。
-  /// 右侧只留一个「评分」或「播放键」，两者互斥。
+  /// 播客节目行：封面 56 + 两行标题 + 标签 + 所属播客。
   Widget _buildMediaTile(
     BuildContext context, {
     required String cover,
     required String title,
     String chip = '',
     String subtitle = '',
-    String score = '',
-    bool vip = false,
-    bool showPlay = false,
   }) {
-    final Widget? trailing = score.isNotEmpty
-        ? Text(
-            score,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textTertiary,
-            ),
-          )
-        : (showPlay
-              ? const Icon(
-                  Icons.play_arrow_rounded,
-                  size: 22,
-                  color: AppTheme.textTertiary,
-                )
-              : null);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -670,25 +818,15 @@ class HomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          height: 1.25,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                    ),
-                    if (vip) ...<Widget>[
-                      const SizedBox(width: 4),
-                      SvgPicture.asset(AppConstants.vipBadge, height: 12),
-                    ],
-                  ],
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.25,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
                 if (chip.isNotEmpty || subtitle.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 3),
@@ -712,7 +850,6 @@ class HomeView extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...<Widget>[const SizedBox(width: 8), trailing],
         ],
       ),
     );

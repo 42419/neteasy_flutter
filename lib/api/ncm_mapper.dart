@@ -306,6 +306,8 @@ HomeBook? _toBook(Map<dynamic, dynamic> item) {
     title: title,
     coverUrl: (item['coverUrl'] as String?) ?? '',
     category: (label?['text'] as String?) ?? '',
+    // 官方三行里的灰色简介；实测 12 条都有，仍按容错处理
+    desc: (item['desc'] as String?) ?? '',
     playCount: _asId(item['playCount']),
     score: _asId(item['score']),
   );
