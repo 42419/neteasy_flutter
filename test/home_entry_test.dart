@@ -54,4 +54,23 @@ void main() {
     expect(entries.single.subtitle, '');
     expect(entries.single.usable, isTrue);
   });
+
+  test('入口卡：name 是空串时取 title，副标题和跳转同理', () {
+    final List<HomeEntry> entries = toHomeEntries(<String, dynamic>{
+      'data': <Map<String, dynamic>>[
+        {
+          'id': 1,
+          'name': '  ',
+          'title': '榜单推荐',
+          'subTitle': '',
+          'subtitle': '云音乐官方 top 排行榜',
+          'url': '',
+          'action': 'orpheus://toplist',
+        },
+      ],
+    });
+    expect(entries.single.title, '榜单推荐');
+    expect(entries.single.subtitle, '云音乐官方 top 排行榜');
+    expect(entries.single.action, 'orpheus://toplist');
+  });
 }

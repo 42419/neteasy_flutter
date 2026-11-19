@@ -404,10 +404,8 @@ List<HomeEntry> toHomeEntries(Map<dynamic, dynamic> json) {
     if (raw is! Map) {
       continue;
     }
-    final String title =
-        (raw['name'] as String?)?.trim() ??
-        (raw['title'] as String?)?.trim() ??
-        '';
+    // 字段可能是空串：按候选顺序取第一个**非空**的，不能用 `??`（空串不是 null）
+    final String title = _firstText(<Object?>[raw['name'], raw['title']]);
     if (title.isEmpty) {
       continue;
     }
@@ -415,17 +413,27 @@ List<HomeEntry> toHomeEntries(Map<dynamic, dynamic> json) {
       HomeEntry(
         id: '${raw['id'] ?? raw['ballId'] ?? entries.length}',
         title: title,
-        subtitle:
-            (raw['subTitle'] as String?)?.trim() ??
-            (raw['subtitle'] as String?)?.trim() ??
-            (raw['desc'] as String?)?.trim() ??
-            '',
+        subtitle: _firstText(<Object?>[
+          raw['subTitle'],
+          raw['subtitle'],
+          raw['desc'],
+        ]),
         imageUrl: _firstImage(raw),
-        action: (raw['url'] as String?) ?? (raw['action'] as String?) ?? '',
+        action: _firstText(<Object?>[raw['url'], raw['action']]),
       ),
     );
   }
   return entries;
+}
+
+/// 候选值里第一个去掉首尾空白后非空的字符串，都没有返回空串
+String _firstText(Iterable<Object?> candidates) {
+  for (final Object? value in candidates) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return '';
 }
 
 /// 入口卡的背景图可能在多个字段里，按优先级试
