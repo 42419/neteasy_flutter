@@ -9,8 +9,7 @@ import 'ncm_mapper.dart';
 
 /// 网易云数据仓库：只调用后端已实现的路由，返回 `Result`，不抛裸异常。
 ///
-/// 后端目前只实现了 24 个接口，首页若干模块没有数据源，对应占位由页面层处理，
-/// 这里不提供假实现。
+/// 后端没有的接口不在这里做假实现，占位由页面层处理。
 class NcmRepository {
   const NcmRepository(this._api);
 
