@@ -33,14 +33,16 @@ class AppConstants {
   static const String vipBadge = 'assets/icons/vip/vip.svg';
   static const String svipBadge = 'assets/icons/vip/svip.svg';
 
-  /// 请求网易云图片 CDN（p1/p2/p3/p4.music.126.net）时必须带的头。
+  /// 请求网易云图片 CDN（music.126.net）时必须带的头。
   ///
-  /// 它的 WAF 会拦 `Dart/3.x (dart:io)` 这类 UA 并直接回 403，同一个 URL 换成
-  /// 浏览器 UA 就是 200（实测）。Referer 一并带上，避免以后策略收紧。
+  /// CDN 对不同图片来源的 UA 策略不一致：官方运营图任何 UA 都放行，
+  /// 用户上传的封面会拦 `Dart/3.x (dart:io)` 并回 403（实测同一 URL
+  /// 只换 UA 就通）。这里用官方 Android 客户端 UA，与后端
+  /// `util/request.rs` 的 `UA_API_ANDROID` 保持一致。
   static const Map<String, String> coverHeaders = <String, String>{
     'User-Agent':
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
-        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        'NeteaseMusic/9.5.61.260802021928(9005061);'
+        'Dalvik/2.1.0 (Linux; U; Android 12; HBN-AL00 Build/cd737a2.0)',
     'Referer': 'https://music.163.com/',
   };
 }

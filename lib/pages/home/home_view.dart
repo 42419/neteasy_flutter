@@ -531,7 +531,7 @@ class HomeView extends StatelessWidget {
                   Positioned.fill(child: _buildCover(context, image)),
                   if (playCount > 0)
                     Positioned(
-                      left: 6,
+                      right: 6,
                       top: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1028,10 +1028,10 @@ class HomeView extends StatelessWidget {
                     ),
                   ),
                 ),
-                // 左上角播放量
+                // 右上角播放量
                 if (rank.playCount > 0)
                   Positioned(
-                    left: 6,
+                    right: 6,
                     top: 6,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
