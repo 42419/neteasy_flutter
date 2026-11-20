@@ -1,10 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/ncm_repository.dart';
+import '../../stores/daily_store.dart';
 import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/home_block.dart';
 import '../../viewmodels/playlist.dart';
+import '../daily/daily_recommend_page.dart';
 import 'widgets/entry_cards.dart';
 import 'widgets/home_top_bar.dart';
 import 'widgets/playlist_block.dart';
@@ -71,7 +74,13 @@ class HomeView extends StatelessWidget {
       color: AppTheme.brand,
       child: CustomScrollView(
         slivers: <Widget>[
-          SliverToBoxAdapter(child: EntryCards(entries: store.entries)),
+          SliverToBoxAdapter(
+            child: EntryCards(
+              entries: store.entries,
+              leadImageUrl: store.dailyCover,
+              onTap: (int index) => _openEntry(context, index),
+            ),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
           for (final Widget section in sections)
             SliverToBoxAdapter(child: section),
@@ -158,6 +167,22 @@ class HomeView extends StatelessWidget {
           SectionHeader(title: block.displayTitle, showMore: block.hasMore),
         body,
       ],
+    );
+  }
+
+  /// 入口卡目前只有第一张「每日推荐」有目标页，其余先不响应
+  void _openEntry(BuildContext context, int index) {
+    if (index != 0) {
+      return;
+    }
+    final NcmRepository repo = context.read<NcmRepository>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => ChangeNotifierProvider<DailyStore>(
+          create: (BuildContext context) => DailyStore(repo)..load(),
+          child: const DailyRecommendPage(),
+        ),
+      ),
     );
   }
 

@@ -82,6 +82,11 @@ Song? toSong(Map<dynamic, dynamic> json) {
     coverUrl: cover,
     albumName: albumName,
     durationMs: asInt(json['dt'] ?? json['duration']),
+    // 每日推荐的单曲上直接带推荐语，注意空串要当成没有
+    reason: firstText(<Object?>[json['reason'], json['recommendReason']]),
+    // fee 可能平铺，也可能在 privilege 里
+    isVip:
+        asInt(json['fee']) == 1 || asInt(asMap(json['privilege'])?['fee']) == 1,
   );
 }
 

@@ -9,9 +9,20 @@ import 'cover_image.dart';
 /// [entries] 为空时用内置的 6 张（写死文案 + 渐变），
 /// 有数据（dragon ball 下发）时用真实标题与运营图，配色按序轮换兜底。
 class EntryCards extends StatelessWidget {
-  const EntryCards({super.key, this.entries = const <HomeEntry>[]});
+  const EntryCards({
+    super.key,
+    this.entries = const <HomeEntry>[],
+    this.onTap,
+    this.leadImageUrl = '',
+  });
 
   final List<HomeEntry> entries;
+
+  /// 点了第几张；没接目标页时传 null
+  final void Function(int index)? onTap;
+
+  /// 首张卡（每日推荐）的底图：登录后取今天第一首推荐歌的封面
+  final String leadImageUrl;
 
   /// 内置兜底：官方这 6 个入口的固定文案与配色
   static const List<_DefaultEntry> _defaults = <_DefaultEntry>[
@@ -69,21 +80,31 @@ class EntryCards extends StatelessWidget {
         separatorBuilder: (BuildContext context, int index) =>
             const SizedBox(width: 8),
         itemBuilder: (BuildContext context, int index) {
+          final Widget card;
           if (useDefaults) {
             final _DefaultEntry entry = _defaults[index];
-            return EntryCard(
+            card = EntryCard(
               title: entry.title,
               subtitle: entry.subtitle,
               colors: entry.colors,
+              imageUrl: index == 0 ? leadImageUrl : '',
+            );
+          } else {
+            final HomeEntry entry = entries[index];
+            card = EntryCard(
+              title: entry.title,
+              subtitle: entry.subtitle,
+              colors: _palettes[index % _palettes.length],
+              imageUrl: entry.imageUrl.isNotEmpty
+                  ? entry.imageUrl
+                  : (index == 0 ? leadImageUrl : ''),
             );
           }
-          final HomeEntry entry = entries[index];
-          return EntryCard(
-            title: entry.title,
-            subtitle: entry.subtitle,
-            colors: _palettes[index % _palettes.length],
-            imageUrl: entry.imageUrl,
-          );
+          final void Function(int index)? tap = onTap;
+          if (tap == null) {
+            return card;
+          }
+          return GestureDetector(onTap: () => tap(index), child: card);
         },
       ),
     );

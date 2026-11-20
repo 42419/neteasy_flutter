@@ -6,6 +6,7 @@ import '../viewmodels/home_block.dart';
 import '../viewmodels/home_entry.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
+import '../viewmodels/song.dart';
 
 /// 首页状态。
 ///
@@ -31,6 +32,9 @@ class HomeStore extends ChangeNotifier {
   List<Playlist> _myPlaylists = const <Playlist>[];
   int? _uid;
   String _nickname = '';
+
+  /// 每日推荐第一首的封面，用作首张入口卡的底图
+  String _dailyCover = '';
   bool _disposed = false;
 
   /// 并发的 load 只认最后一次：登录态恢复和登录回调可能先后各触发一次
@@ -48,6 +52,9 @@ class HomeStore extends ChangeNotifier {
   List<Playlist> get myPlaylists => _myPlaylists;
   int? get uid => _uid;
   String get nickname => _nickname;
+
+  /// 每日推荐第一首的封面；空表示未登录或还没取到
+  String get dailyCover => _dailyCover;
   bool get loggedIn => _uid != null;
 
   /// 首页排行榜展示的卡片数
@@ -78,11 +85,16 @@ class HomeStore extends ChangeNotifier {
             const Ok<List<Playlist>>(<Playlist>[]),
           )
         : _repo.userPlaylists(uid);
+    // 首张入口卡（每日推荐）的背景就是今天第一首推荐的专辑封面
+    final Future<Result<List<Song>>> dailyFuture = uid == null
+        ? Future<Result<List<Song>>>.value(const Ok<List<Song>>(<Song>[]))
+        : _repo.dailySongs();
 
     final Result<List<HomeBlock>> blocks = await blocksFuture;
     final Result<List<HomeEntry>> entries = await entriesFuture;
     final List<Rank> ranks = await ranksFuture;
     final Result<List<Playlist>> mine = await mineFuture;
+    final Result<List<Song>> daily = await dailyFuture;
     if (generation != _generation) {
       return;
     }
@@ -102,6 +114,9 @@ class HomeStore extends ChangeNotifier {
     }
     if (mine is Ok<List<Playlist>>) {
       _myPlaylists = mine.value;
+    }
+    if (daily is Ok<List<Song>> && daily.value.isNotEmpty) {
+      _dailyCover = daily.value.first.coverUrl;
     }
 
     final bool hasAny = _blocks.isNotEmpty || _ranks.isNotEmpty;

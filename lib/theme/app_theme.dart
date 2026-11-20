@@ -24,6 +24,9 @@ class AppTheme {
   /// 图片未加载完的底色
   static const Color placeholder = Color(0xFFE6E9EE);
 
+  /// 细描边：按钮边框、分割线
+  static const Color divider = Color(0xFFE3E5E8);
+
   /// 分类/标签 chip：官方是透明底 + 细描边（截图采样 #B6C3DD / #5975B2）
   static const Color chipBorder = Color(0xFFB6C3DD);
   static const Color chipText = Color(0xFF5975B2);

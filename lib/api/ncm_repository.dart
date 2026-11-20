@@ -115,10 +115,13 @@ class NcmRepository {
     };
   }
 
-  /// 每日推荐歌曲（`/recommend/songs`，需要登录）
-  Future<Result<List<Song>>> dailySongs() async {
+  /// 每日推荐歌曲（`/recommend/songs`，需要登录）。
+  ///
+  /// [refresh] 对应页面上的「换一批」：后端缓存 2 分钟，带时间戳才能拿到新的一批。
+  Future<Result<List<Song>>> dailySongs({bool refresh = false}) async {
     final Result<Map<String, dynamic>> result = await _api.get(
       '/recommend/songs',
+      refresh ? <String, String>{'timestamp': _stamp} : null,
     );
     return switch (result) {
       Ok(:final Map<String, dynamic> value) => Ok(

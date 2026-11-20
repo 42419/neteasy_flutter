@@ -10,6 +10,8 @@ class Song {
     this.coverUrl = '',
     this.albumName = '',
     this.durationMs = 0,
+    this.reason = '',
+    this.isVip = false,
   });
 
   final int id;
@@ -18,6 +20,12 @@ class Song {
   final String coverUrl;
   final String albumName;
   final int durationMs;
+
+  /// 每日推荐给的推荐语，如「百万红心」「超43%人收藏」；空表示没有
+  final String reason;
+
+  /// 需要会员才能完整播放（`fee == 1`）
+  final bool isVip;
 
   /// 列表里副标题：歌手 · 专辑，空的部分自动省略。
   String get subtitle {
