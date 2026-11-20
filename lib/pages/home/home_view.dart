@@ -1,135 +1,41 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../constants/app_constants.dart';
 import '../../stores/home_store.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/format.dart';
 import '../../viewmodels/home_block.dart';
-import '../../viewmodels/home_entry.dart';
 import '../../viewmodels/playlist.dart';
-import '../../viewmodels/rank.dart';
+import 'widgets/entry_cards.dart';
+import 'widgets/home_top_bar.dart';
+import 'widgets/playlist_block.dart';
+import 'widgets/rank_block.dart';
+import 'widgets/section_parts.dart';
+import 'widgets/song_block.dart';
+import 'widgets/voice_block.dart';
 
 /// 首页（发现音乐）。
 ///
-/// 主体由 `/homepage/block/page` 的 `blocks` 驱动，按 `blockCode` 选择渲染方式；
-/// 不认识的区块、没有内容的区块直接不画，不留空白。
-/// 排行榜和「我的歌单」是独立接口，按官方的位置插进区块之间。
+/// 只做编排：顶部栏 + 入口卡 + 按 `blockCode` 分发的区块。
+/// 具体卡片与行的实现都在 `widgets/` 下，这里不写样式细节。
 ///
-/// 点击跳转暂未接入，卡片目前只负责展示。
+/// 主体由 `/homepage/block/page` 的 `blocks` 驱动，不认识的、没内容的区块直接不画；
+/// 排行榜和「我的歌单」走独立接口，按官方位置插进区块之间。
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
-  /// 排行榜卡片的底色，按顺序循环。官方是绿/橙/蓝/紫几套。
-  static const List<List<Color>> _rankPalettes = <List<Color>>[
-    <Color>[Color(0xFF7BD3A8), Color(0xFF3BAF7A)],
-    <Color>[Color(0xFFFFC46B), Color(0xFFF08C2E)],
-    <Color>[Color(0xFF9EC5FF), Color(0xFF5B8DEF)],
-    <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
-  ];
-
-  /// 播客节目行高：官方行距约 92dp（封面 80）。这里放到 100，
-  /// 是为了让「两行标题 + 两行简介」的极端情况不溢出。
-  static const double _podcastRowHeight = 100;
-
-  /// 歌曲行高：官方「近期云村热播」实测 58dp，封面 48
-  static const double _songRowHeight = 58;
-
-  /// 有声书行高：官方实测 90dp，封面 64，文字占三行（标题 / 简介 / 分类+播放量）
-  static const double _bookRowHeight = 92;
-
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
     final HomeStore store = context.watch<HomeStore>();
     return SafeArea(
       bottom: false,
       child: Column(
         children: <Widget>[
-          _buildTopBar(theme, scheme),
+          const HomeTopBar(),
           Expanded(child: _buildBody(context, store)),
         ],
       ),
     );
   }
-
-  // ---------- 顶部栏 ----------
-
-  Widget _buildTopBar(ThemeData theme, ColorScheme scheme) {
-    return SizedBox(
-      height: AppTheme.tabBarHeight,
-      child: Row(
-        crossAxisAlignment: .center,
-        children: <Widget>[
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.menu, size: 24),
-            color: AppTheme.textPrimary,
-            tooltip: '菜单',
-          ),
-          Expanded(
-            child: SizedBox.expand(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  for (int i = 0; i < AppConstants.homeTabs.length; i++)
-                    Expanded(
-                      child: _buildTabItem(
-                        label: AppConstants.homeTabs[i],
-                        selected: i == AppConstants.homeDefaultTab,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search, size: 24),
-            color: AppTheme.textPrimary,
-            tooltip: '搜索',
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabItem({required String label, required bool selected}) {
-    return Transform.translate(
-      offset: const Offset(0, 3),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            label,
-            maxLines: 1,
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.2,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? AppTheme.textPrimary : AppTheme.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Container(
-            width: 20,
-            height: 3,
-            decoration: BoxDecoration(
-              color: selected ? AppTheme.brand : Colors.transparent,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- 主体 ----------
 
   Widget _buildBody(BuildContext context, HomeStore store) {
     // 只有首次加载才整页转圈；下拉刷新时保留旧内容
@@ -165,30 +71,11 @@ class HomeView extends StatelessWidget {
       color: AppTheme.brand,
       child: CustomScrollView(
         slivers: <Widget>[
-          // 入口大卡：登录态用 dragon ball 下发的真实图，拿不到就用内置配色兜底
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 200,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.pagePadding,
-                  8,
-                  AppTheme.pagePadding,
-                  0,
-                ),
-                children: store.entries.isEmpty
-                    ? _buildDefaultEntries(context)
-                    : _buildEntryRow(context, store.entries),
-              ),
-            ),
-          ),
+          SliverToBoxAdapter(child: EntryCards(entries: store.entries)),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-
           for (final Widget section in sections)
             SliverToBoxAdapter(child: section),
-
-          // 给阶段的悬浮迷你播放器留空间
+          // 给悬浮迷你播放器留空间
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
@@ -197,7 +84,7 @@ class HomeView extends StatelessWidget {
 
   /// 把服务端区块、排行榜、我的歌单排成官方的顺序：
   /// 推荐歌单 → 曲风歌曲 → 排行榜 → 我的歌单 → 雷达歌单 → 其余区块。
-  /// 服务端没有的区块就跳过，排行榜和我的歌单找不到锚点时落在末尾。
+  /// 排行榜和我的歌单找不到锚点时落在末尾。
   List<Widget> _buildSections(BuildContext context, HomeStore store) {
     final List<Widget> sections = <Widget>[];
     bool ranksAdded = false;
@@ -208,7 +95,7 @@ class HomeView extends StatelessWidget {
         return;
       }
       ranksAdded = true;
-      sections.add(_buildRankSection(store));
+      sections.add(RankSection(ranks: store.ranks));
     }
 
     void addMine() {
@@ -216,7 +103,7 @@ class HomeView extends StatelessWidget {
         return;
       }
       mineAdded = true;
-      sections.add(_buildMyPlaylistSection(context, store));
+      sections.add(_buildMyPlaylistSection(store));
     }
 
     for (final HomeBlock block in store.blocks) {
@@ -224,9 +111,9 @@ class HomeView extends StatelessWidget {
         addRanks();
         addMine();
       }
-      final Widget? widget = _buildBlock(context, block);
-      if (widget != null) {
-        sections.add(widget);
+      final Widget? section = _buildBlock(block);
+      if (section != null) {
+        sections.add(section);
       }
       if (block.blockCode == HomeBlock.styleRcmd) {
         addRanks();
@@ -237,10 +124,8 @@ class HomeView extends StatelessWidget {
     return sections;
   }
 
-  // ---------- 区块 ----------
-
   /// 按 blockCode 选渲染方式；不认识或没内容返回 null（整块不画）。
-  Widget? _buildBlock(BuildContext context, HomeBlock block) {
+  Widget? _buildBlock(HomeBlock block) {
     if (block.isEmpty) {
       return null;
     }
@@ -248,39 +133,21 @@ class HomeView extends StatelessWidget {
     switch (block.blockCode) {
       case HomeBlock.playlistRcmd:
         // 官方推荐歌单卡不带播放量，只有播放键
-        body = _buildCoverRow(context, block, showCount: false);
+        body = PlaylistRow(block: block, showCount: false);
       case HomeBlock.mgcPlaylist:
       case HomeBlock.officialPlaylist:
       case HomeBlock.videoPlaylist:
-        body = _buildCoverRow(context, block);
+        body = PlaylistRow(block: block);
       case HomeBlock.voicelistRcmd:
-        body = _buildCoverRow(
-          context,
-          block,
-          showCount: false,
-          showPlay: false,
-        );
+        // 热门播客：卡片只有封面和名字，没有播放量与播放键
+        body = PlaylistRow(block: block, showCount: false, showPlay: false);
       case HomeBlock.styleRcmd:
       case HomeBlock.newAlbumNewSong:
-        body = _buildSongPages(context, block);
+        body = SongBlock(block: block);
       case HomeBlock.musicPodcastRcmd:
-        body = _buildRowPages(
-          context,
-          block.creatives
-              .expand((HomeCreative c) => c.resources)
-              .map((HomeResource r) => _buildVoiceTile(context, r))
-              .toList(),
-          rowHeight: _podcastRowHeight,
-        );
+        body = VoiceBlock(block: block);
       case HomeBlock.voicebookRcmd:
-        if (block.books.isEmpty) {
-          return null;
-        }
-        body = _buildRowPages(
-          context,
-          block.books.map((HomeBook b) => _buildBookTile(context, b)).toList(),
-          rowHeight: _bookRowHeight,
-        );
+        body = BookBlock(block: block);
       default:
         return null;
     }
@@ -288,150 +155,26 @@ class HomeView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (block.hasHeader)
-          _buildSectionHeader(
-            title: block.displayTitle,
-            showMore: block.hasMore,
-          ),
+          SectionHeader(title: block.displayTitle, showMore: block.hasMore),
         body,
       ],
     );
   }
 
-  /// 横向滑动的一排
-  Widget _buildHorizontalList({
-    required double height,
-    required int itemCount,
-    required Widget Function(BuildContext context, int index) itemBuilder,
-  }) {
-    return SizedBox(
-      height: height,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.pagePadding),
-        itemCount: itemCount,
-        separatorBuilder: (BuildContext context, int index) =>
-            const SizedBox(width: 10),
-        itemBuilder: itemBuilder,
-      ),
-    );
-  }
-
-  /// 封面卡一排：歌单、热门播客
-  Widget _buildCoverRow(
-    BuildContext context,
-    HomeBlock block, {
-    bool showCount = true,
-    bool showPlay = true,
-  }) {
-    return _buildHorizontalList(
-      height: 200,
-      itemCount: block.creatives.length,
-      itemBuilder: (BuildContext context, int index) {
-        final HomeCreative creative = block.creatives[index];
-        final HomeResource? res = creative.primary;
-        final String image = res != null && res.imageUrl.isNotEmpty
-            ? res.imageUrl
-            : creative.imageUrl;
-        // 热门播客的 resources 是空的，名字只在 creative 上
-        final String resName = res?.displayName ?? '';
-        return _buildCoverCard(
-          context,
-          image: image,
-          name: resName.isNotEmpty ? resName : creative.title,
-          playCount: showCount ? (res?.playCount ?? 0) : 0,
-          showPlay: showPlay,
-        );
-      },
-    );
-  }
-
-  /// 一页三首歌：曲风推荐、新歌新碟。
-  /// 和播客、有声书共用同一套分页：每张卡原本的 3 首歌拆成 3 行，3 行一页横向翻。
-  Widget _buildSongPages(BuildContext context, HomeBlock block) {
-    final List<Widget> tiles = <Widget>[
-      for (final HomeCreative creative in block.creatives)
-        for (final HomeResource song in creative.resources.take(3))
-          _buildSongTile(context, song),
-    ];
-    // 区块里一首歌都没有时不占空白
-    if (tiles.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return _buildRowPages(context, tiles, rowHeight: _songRowHeight);
-  }
-
-  /// 把一串条目按每 3 条一页横向铺开（歌曲、播客节目、有声书）。
-  ///
-  /// 几何照官方实测：页宽 = 屏幕宽 − 32，页内左 16 / 右 8，页与页之间**不留间隙**。
-  /// 这样下一页的封面只在屏幕右缘露出约 16dp，三组宽度完全一致。
-  Widget _buildRowPages(
-    BuildContext context,
-    List<Widget> tiles, {
-    required double rowHeight,
-  }) {
-    final List<List<Widget>> pages = <List<Widget>>[];
-    for (int i = 0; i < tiles.length; i += 3) {
-      pages.add(tiles.sublist(i, i + 3 > tiles.length ? tiles.length : i + 3));
-    }
-    final double pageWidth =
-        MediaQuery.sizeOf(context).width - AppTheme.pagePadding * 2;
-    return SizedBox(
-      height: rowHeight * 3,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
-        itemCount: pages.length,
-        itemBuilder: (BuildContext context, int index) => SizedBox(
-          width: pageWidth,
-          child: Padding(
-            padding: const EdgeInsets.only(
-              left: AppTheme.pagePadding,
-              right: 8,
-            ),
-            child: Column(
-              children: <Widget>[
-                for (final Widget tile in pages[index])
-                  SizedBox(height: rowHeight, child: tile),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ---------- 排行榜 / 我的歌单 ----------
-
-  Widget _buildRankSection(HomeStore store) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _buildSectionHeader(title: '排行榜', showMore: true),
-        _buildHorizontalList(
-          height: 200,
-          itemCount: store.ranks.length,
-          itemBuilder: (BuildContext context, int index) =>
-              _buildRankCard(store.ranks[index], index),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMyPlaylistSection(BuildContext context, HomeStore store) {
+  Widget _buildMyPlaylistSection(HomeStore store) {
     final String title = store.nickname.isEmpty
         ? '我的歌单'
         : '${store.nickname}的歌单';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _buildSectionHeader(title: title),
-        _buildHorizontalList(
+        SectionHeader(title: title),
+        HorizontalList(
           height: 200,
           itemCount: store.myPlaylists.length,
           itemBuilder: (BuildContext context, int index) {
             final Playlist playlist = store.myPlaylists[index];
-            return _buildCoverCard(
-              context,
+            return CoverCard(
               image: playlist.coverUrl,
               // 官方把「我喜欢的音乐」歌单统一显示成这个名字
               name: playlist.isLikedMusic ? '我喜欢的音乐' : playlist.name,
@@ -441,774 +184,5 @@ class HomeView extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  /// 区块标题。箭头只在这个区块有「更多」入口时才画。
-  Widget _buildSectionHeader({required String title, bool showMore = false}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.pagePadding,
-        20,
-        AppTheme.pagePadding,
-        10,
-      ),
-      child: Row(
-        children: <Widget>[
-          Flexible(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.sectionTitle,
-            ),
-          ),
-          if (showMore)
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 25,
-              color: AppTheme.textPrimary,
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- 卡片 ----------
-
-  /// 封面卡：歌单、播客这种「一张图 + 标题」的方块。
-  /// 左上播放量、右下播放键都按需显示。
-  Widget _buildCoverCard(
-    BuildContext context, {
-    required String image,
-    required String name,
-    int playCount = 0,
-    bool showPlay = true,
-  }) {
-    return SizedBox(
-      width: 150,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: Stack(
-                children: <Widget>[
-                  Positioned.fill(child: _buildCover(context, image)),
-                  if (playCount > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusChip,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            const Icon(
-                              Icons.headphones,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              formatCount(playCount),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                height: 1.2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  if (showPlay)
-                    const Positioned(
-                      right: 4,
-                      bottom: 4,
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        size: 30,
-                        color: Colors.white,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Flexible(
-            child: Text(
-              name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.cardTitle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 歌曲行：官方「近期云村热播」样式。
-  /// 封面 48 / 歌名一行 / 标签 + 歌手 / 右侧实心播放三角。
-  /// 标签（`subtitle`）是「超51%人收藏」这类文案，歌手要读 `artists`。
-  Widget _buildSongTile(BuildContext context, HomeResource song) {
-    return Row(
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: _buildCover(context, song.imageUrl, logicalWidth: 48),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Text(
-                      song.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        height: 1.3,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-                  if (song.isVip) ...<Widget>[
-                    const SizedBox(width: 4),
-                    SvgPicture.asset(AppConstants.vipBadge, height: 12),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: <Widget>[
-                  if (song.subtitle.isNotEmpty) ...<Widget>[
-                    Flexible(child: _buildTagChip(song.subtitle)),
-                    const SizedBox(width: 6),
-                  ],
-                  Flexible(
-                    child: Text(
-                      song.artistLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.caption,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 4),
-        const Icon(
-          Icons.play_arrow_rounded,
-          size: 26,
-          color: AppTheme.iconPlay,
-        ),
-      ],
-    );
-  }
-
-  /// 分类/标签小标签。
-  ///
-  /// 官方两套：有声书分类是透明底 + 蓝灰细描边，播客标签是浅蓝填充（#E5EAF2）。
-  /// 文字都取 #5975B2。
-  Widget _buildTagChip(String text, {bool filled = false}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: filled ? 4 : 2, vertical: 1),
-      decoration: BoxDecoration(
-        color: filled ? AppTheme.chipFill : null,
-        border: filled
-            ? null
-            : Border.all(color: AppTheme.chipBorder, width: 0.5),
-        borderRadius: BorderRadius.circular(AppTheme.radiusChip),
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 10,
-          height: 1.2,
-          color: AppTheme.chipText,
-        ),
-      ),
-    );
-  }
-
-  /// 播客节目行：所属播客 / 节目标题 / 标签 + 简介。
-  /// 根据标题实际占用的行数，动态调整简介行数。
-  Widget _buildVoiceTile(BuildContext context, HomeResource voice) {
-    final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
-
-    final String title = voice.displayName;
-
-    const TextStyle titleStyle = TextStyle(
-      fontSize: 16,
-      height: 1.15,
-      fontWeight: FontWeight.w500,
-      color: AppTheme.textPrimary,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        // 左侧封面
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 80,
-            height: 80,
-            child: _buildCover(context, voice.imageUrl, logicalWidth: 80),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        // 中间文字区域
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // 根据实际可用宽度测量标题行数
-              final TextPainter titlePainter = TextPainter(
-                text: TextSpan(text: title, style: titleStyle),
-                textDirection: Directionality.of(context),
-                textScaler: MediaQuery.textScalerOf(context),
-                maxLines: 2,
-              );
-
-              titlePainter.layout(maxWidth: constraints.maxWidth);
-
-              final int titleLineCount = titlePainter
-                  .computeLineMetrics()
-                  .length;
-
-              titlePainter.dispose();
-
-              final int descMaxLines = titleLineCount >= 2 ? 1 : 2;
-
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // 所属播客名称
-                  Text(
-                    voice.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.2,
-                      color: AppTheme.textDescription,
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  // 节目标题
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
-                  ),
-
-                  if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 5),
-
-                    // 标签 + 简介
-                    Text.rich(
-                      TextSpan(
-                        children: <InlineSpan>[
-                          if (label.isNotEmpty)
-                            WidgetSpan(
-                              alignment: PlaceholderAlignment.middle,
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: _buildTagChip(label, filled: true),
-                              ),
-                            ),
-                          TextSpan(
-                            text: voice.desc,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              height: 1.2,
-                              color: AppTheme.textDescription,
-                            ),
-                          ),
-                        ],
-                      ),
-                      maxLines: descMaxLines,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(width: 8),
-
-        // 右侧播放按钮
-        SizedBox(
-          height: 80,
-          child: Align(
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 26,
-              color: AppTheme.iconPlay,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 有声书行：官方三行——标题（两行）/ 灰色简介 / 分类标签 + 播放量，右侧评分。
-  ///
-  /// 评分在官方用的是自有字体，这里只用字号/字重/颜色近似，不追求字形一致。
-  Widget _buildBookTile(BuildContext context, HomeBook book) {
-    return Row(
-      crossAxisAlignment: .center,
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 64,
-            height: 80,
-            child: _buildCover(context, book.coverUrl, logicalWidth: 64),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: .center,
-            crossAxisAlignment: .start,
-            children: <Widget>[
-              Text(
-                book.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              if (book.desc.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 3),
-                Text(
-                  book.desc,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    color: AppTheme.textDescription,
-                  ),
-                ),
-              ],
-              if (book.category.isNotEmpty ||
-                  book.playCount.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 3),
-                Row(
-                  children: <Widget>[
-                    if (book.category.isNotEmpty) ...<Widget>[
-                      _buildTagChip(book.category),
-                      const SizedBox(width: 8),
-                    ],
-                    if (book.playCount.isNotEmpty) ...<Widget>[
-                      const Icon(
-                        Icons.play_arrow_rounded,
-                        size: 15,
-                        color: AppTheme.textTertiary,
-                      ),
-                      Text(
-                        book.playCount,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.2,
-                          color: AppTheme.textTertiary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        if (book.score.isNotEmpty)
-          // 与封面（64×80）垂直居中，和官方一致
-          SizedBox(
-            height: 80,
-            child: Align(
-              alignment: Alignment.center,
-              child: Text(
-                book.score,
-                style: const TextStyle(
-                  fontSize: 21,
-                  height: 1.1,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textDescription,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// 内置的 6 张入口卡：dragon ball 没数据时兜底用
-  List<Widget> _buildDefaultEntries(BuildContext context) {
-    return <Widget>[
-      _buildEntryCard(
-        context: context,
-        title: '每日推荐',
-        subtitle: '今日限定好歌推荐',
-        colors: const <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
-      ),
-      const SizedBox(width: 8),
-      _buildEntryCard(
-        context: context,
-        title: '榜单推荐',
-        subtitle: '云音乐官方 top 排...',
-        colors: const <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
-      ),
-      const SizedBox(width: 8),
-      _buildEntryCard(
-        context: context,
-        title: '心动模式',
-        subtitle: '红心歌曲和相似歌单',
-        colors: const <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
-      ),
-      const SizedBox(width: 8),
-      _buildEntryCard(
-        context: context,
-        title: '雷达歌单',
-        subtitle: '反复聆听你爱的歌',
-        colors: const <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
-      ),
-      const SizedBox(width: 8),
-      _buildEntryCard(
-        context: context,
-        title: '漫游',
-        subtitle: '多样频道无限畅听',
-        colors: const <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
-      ),
-      const SizedBox(width: 8),
-      _buildEntryCard(
-        context: context,
-        title: '相似歌曲',
-        subtitle: '从你喜欢的歌听起',
-        colors: const <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
-      ),
-    ];
-  }
-
-  /// dragon ball 下发的真实入口卡
-  List<Widget> _buildEntryRow(BuildContext context, List<HomeEntry> entries) {
-    return <Widget>[
-      for (int i = 0; i < entries.length; i++) ...<Widget>[
-        _buildEntryCard(
-          context: context,
-          title: entries[i].title,
-          subtitle: entries[i].subtitle,
-          colors: _entryPalette(i),
-          imageUrl: entries[i].imageUrl,
-        ),
-        if (i != entries.length - 1) const SizedBox(width: 8),
-      ],
-    ];
-  }
-
-  /// 真实数据不带配色，按下标轮换一套，图没加载出来时不至于露白底
-  static const List<List<Color>> _entryPalettes = <List<Color>>[
-    <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
-    <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
-    <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
-    <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
-    <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
-    <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
-  ];
-
-  List<Color> _entryPalette(int index) =>
-      _entryPalettes[index % _entryPalettes.length];
-
-  Widget _buildEntryCard({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required List<Color> colors,
-    String imageUrl = '',
-  }) {
-    return Container(
-      width: 150,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        color: imageUrl.isEmpty ? null : AppTheme.placeholder,
-        gradient: imageUrl.isEmpty
-            ? LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: <Widget>[
-          // 有真实运营图就铺满，没有就靠上面的渐变
-          if (imageUrl.isNotEmpty)
-            Positioned.fill(
-              child: _buildCover(context, imageUrl, logicalWidth: 150),
-            ),
-          // 底部压暗，保证文字可读
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.45),
-                  ],
-                  stops: const <double>[0.45, 1],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 10,
-            bottom: 10,
-            right: 40,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.2,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.75),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Positioned(
-            right: 8,
-            bottom: 12,
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 32,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRankCard(Rank rank, int index) {
-    final List<Color> colors = _rankPalettes[index % _rankPalettes.length];
-    return SizedBox(
-      width: 150,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            height: 150,
-            width: 150,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-              gradient: LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Stack(
-              children: <Widget>[
-                // 榜名居中大字
-                Center(
-                  child: Text(
-                    rank.name,
-                    textAlign: .center,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      height: 1.1,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                // 右上角播放量
-                if (rank.playCount > 0)
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Icon(
-                          Icons.headphones,
-                          size: 13,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 1),
-                        Text(
-                          formatCount(rank.playCount),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            height: 1.1,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                const Positioned(
-                  right: 3,
-                  bottom: 3,
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    size: 33,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 卡片下方接前 3 首歌名，顿号连接
-          Text(
-            rank.trackLine,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.cardTitle,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 封面：按显示宽度向 CDN 要对应档位的缩略图，灰底占位，加载完淡入。
-  ///
-  /// - `?param=WxH` 会让 CDN 现裁成正方形：150dp 卡取 450px（77KB → 24KB）、
-  ///   48dp 行取 150px（→ 4.9KB）
-  /// - 一张封面只发一个请求。之前先挂 30px 模糊预览再换大图，一屏几十张封面
-  ///   请求数翻倍，滑动时更明显
-  /// - 已带 `?imageView=...` 的 URL 不再叠 `param`（CDN 只认第一个处理指令），
-  ///   这类保持原样
-  Widget _buildCover(
-    BuildContext context,
-    String url, {
-    double logicalWidth = 150,
-  }) {
-    final String normalized = _normalizeUrl(url);
-    if (normalized.isEmpty) {
-      return const ColoredBox(color: AppTheme.placeholder);
-    }
-
-    final int preset = _coverPreset(logicalWidth);
-    final String fullUrl = normalized.contains('?')
-        ? normalized
-        : _sizedUrl(normalized, preset);
-
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        // 底层灰色：图没到、加载失败时都露这一层
-        const ColoredBox(color: AppTheme.placeholder),
-        CachedNetworkImage(
-          imageUrl: fullUrl,
-          fit: BoxFit.cover,
-          memCacheWidth: preset,
-          maxWidthDiskCache: preset,
-          httpHeaders: AppConstants.coverHeaders,
-          fadeInDuration: const Duration(milliseconds: 200),
-          placeholder: (BuildContext context, String url) =>
-              const SizedBox.shrink(),
-          errorWidget: (BuildContext context, String url, Object error) {
-            debugPrint('封面加载失败 URL: $url');
-            debugPrint('封面加载失败原因: $error');
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
-    );
-  }
-
-  /// 显示宽度 → CDN 档位。按 3x 屏算，再大就是浪费流量。
-  static int _coverPreset(double logicalWidth) {
-    if (logicalWidth >= 120) {
-      return 450;
-    }
-    if (logicalWidth >= 70) {
-      return 300;
-    }
-    if (logicalWidth >= 55) {
-      return 200;
-    }
-    if (logicalWidth >= 40) {
-      return 150;
-    }
-    return 100;
-  }
-
-  /// 网易云 CDN 的现裁参数，`param=WxH` 输出正方形缩略图
-  String _sizedUrl(String url, int px) => '$url?param=${px}y$px';
-
-  String _normalizeUrl(String raw) {
-    final String url = raw.trim();
-    if (url.isEmpty) {
-      return '';
-    }
-    if (url.startsWith('//')) {
-      return 'https:$url';
-    }
-    if (url.startsWith('http://')) {
-      return 'https://${url.substring(7)}';
-    }
-    return url;
   }
 }
