@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 闪屏覆盖层的 id：MainActivity 用它判断是否已经挂过 -->
+    <item name="splash_overlay" type="id" />
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ 的系统启动屏会把图标强制裁圆并放大（HyperOS 上尤其明显，
+     静态图四角被切、整体超出安全区）。这里干脆不放图标，只保留背景色，
+     真正的动画交给 MainActivity 的原生覆盖层。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <size android:width="288dp" android:height="288dp" />
+    <solid android:color="@android:color/transparent" />
+</shape>

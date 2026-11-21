@@ -21,8 +21,8 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 背景交给主题（浅 #F4F7FA / 深 #121212），别再写死浅色
     return Scaffold(
-      backgroundColor: AppTheme.background,
       body: IndexedStack(
         index: _index,
         children: const <Widget>[

@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- API 24–30 没有系统启动屏，这里只铺背景色。
+     动画由 MainActivity 的原生覆盖层在首帧之后接管，不放静态图可以避免
+     「静态图 → Flutter 首帧 → 动画」中间那一下跳变。
+     minSdk 24 时实际命中的是这份（v21 优先于 drawable/），两份保持同步。 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/splash_background" />
 </layer-list>

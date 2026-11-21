@@ -57,4 +57,7 @@ flutter {
 dependencies {
     // BackendService 用到 NotificationCompat / ServiceCompat.startForeground(type)
     implementation("androidx.core:core-ktx:1.16.0")
+    // 闪屏覆盖层在原生侧播 Lottie：Dart 动画会被系统启动屏盖住白白跑掉，
+    // 只有原生能卡在「首帧上屏」这个时刻起跑
+    implementation("com.airbnb.android:lottie:6.7.1")
 }

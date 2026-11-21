@@ -48,6 +48,8 @@ Widget getRootWidget({required SharedPreferences prefs, HomeSnapshot? cached}) {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
+      // 闪屏不在这里做：Android 12+ 的系统启动屏会盖到首帧绘制完成，
+      // Dart 动画会在这段时间白跑，改由 MainActivity 的原生覆盖层接管。
       // 根页走 home，命名路由只登记其余页面
       home: const MainPage(),
       routes: getRootRoute(),

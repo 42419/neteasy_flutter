@@ -12,6 +12,12 @@ class AppTheme {
   /// 页面背景（截图整图众数，占比 47.2%）
   static const Color background = Color(0xFFF4F7FA);
 
+  /// 深色模式的页面背景。
+  ///
+  /// 原生启动屏的 `splash_background`（values-night）必须与它一致，
+  /// 否则冷启动会看到「黑 → 灰」一跳。
+  static const Color backgroundDark = Color(0xFF121212);
+
   /// 网易云品牌红：tab 选中、红心、强调
   static const Color brand = Color(0xFFEC4141);
 
@@ -102,7 +108,10 @@ class AppTheme {
         seedColor: brand,
         brightness: brightness,
       ),
-      scaffoldBackgroundColor: background,
+      // 之前深色也返回浅色背景：只有 ColorScheme 变了，页面底色还是 #F4F7FA
+      scaffoldBackgroundColor: brightness == Brightness.dark
+          ? backgroundDark
+          : background,
     );
   }
 }

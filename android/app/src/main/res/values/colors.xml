@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 冷启动背景：必须与 Dart 侧 AppTheme.background 一致，
+         否则原生启动屏切到 Flutter 首帧时会看到一跳 -->
+    <color name="splash_background">#F4F7FA</color>
+    <!-- splash_logo.png 是黑色描边的 alpha 图，靠 tint 上色 -->
+    <color name="splash_logo_tint">#1A1A1A</color>
+</resources>
