@@ -12,6 +12,7 @@ class Song {
     this.durationMs = 0,
     this.reason = '',
     this.isVip = false,
+    this.mvId = 0,
   });
 
   final int id;
@@ -26,6 +27,9 @@ class Song {
 
   /// 需要会员才能完整播放（`fee == 1`）
   final bool isVip;
+
+  /// 关联 MV 的 id；0 表示没有 MV。列表行据此决定画不画 MV 徽章
+  final int mvId;
 
   /// 列表里副标题：歌手 · 专辑，空的部分自动省略。
   String get subtitle {

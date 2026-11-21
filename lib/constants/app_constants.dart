@@ -33,6 +33,16 @@ class AppConstants {
   static const String vipBadge = 'assets/icons/vip/vip.svg';
   static const String svipBadge = 'assets/icons/vip/svip.svg';
 
+  /// 以下三个是「黑 + alpha」位图，运行时用 srcIn 染色
+  /// 多选：三横 + 勾
+  static const String multiselectIcon = 'assets/icons/multiselect.png';
+
+  /// 行内 MV 徽章：圆角方框 + 播放三角
+  static const String mvIcon = 'assets/icons/mv.png';
+
+  /// 行尾更多（⋮）
+  static const String moreIcon = 'assets/icons/more.png';
+
   /// 请求网易云图片 CDN（music.126.net）时必须带的头。
   ///
   /// CDN 对不同图片来源的 UA 策略不一致：官方运营图任何 UA 都放行，

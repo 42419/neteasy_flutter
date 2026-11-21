@@ -87,6 +87,8 @@ Song? toSong(Map<dynamic, dynamic> json) {
     // fee 可能平铺，也可能在 privilege 里
     isVip:
         asInt(json['fee']) == 1 || asInt(asMap(json['privilege'])?['fee']) == 1,
+    // MV 字段在不同接口里叫 mv / mvid，0 或缺失都表示没有
+    mvId: asInt(json['mv'] ?? json['mvid']),
   );
 }
 
