@@ -104,7 +104,7 @@ class HorizontalList extends StatelessWidget {
 
 /// 把一串条目按每 3 条一页横向铺开（歌曲、播客节目、有声书）。
 ///
-/// 几何照官方实测：页宽 = 屏幕宽 − 32，页内左 16 / 右 8，页与页之间**不留间隙**。
+/// 几何实测：页宽 = 屏幕宽 − 32，页内左 16 / 右 8，页与页之间**不留间隙**。
 /// 这样下一页的封面只在屏幕右缘露出约 16dp，三组宽度完全一致。
 class RowPages extends StatelessWidget {
   const RowPages({super.key, required this.tiles, required this.rowHeight});

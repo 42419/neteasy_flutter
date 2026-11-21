@@ -11,7 +11,7 @@ import '../home/widgets/cover_image.dart';
 
 /// 每日推荐页：首页「每日推荐」卡进入，数据来自 `/recommend/songs`。
 ///
-/// 版式照官方 9.6.22 真机截图逐项量出来（406×904dp）：
+/// 版式逐项量出来（406×904dp）：
 /// 渐变头（顶栏 52 + 留白 60 + 日期 55 + 运势行 30）、动作栏 48、
 /// 提示行 40、列表行 60。改数值前先对一遍截图。
 class DailyRecommendPage extends StatelessWidget {

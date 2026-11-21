@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:neteasy_flutter/components/vip_badge.dart';
 
-/// 尺寸取自官方真机截图（17.7×12dp），这里只锁高度——测试环境的字体是等宽兜底字体，
+/// 徽章高度按 12dp 设计（17.7×12），这里只锁高度——测试环境的字体是等宽兜底字体，
 /// 文字宽度和真机对不上，断宽度会假红。
 void main() {
   testWidgets('默认高度 12dp，文字是 VIP', (WidgetTester tester) async {
