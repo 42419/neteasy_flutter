@@ -175,11 +175,92 @@ class NcmRepository {
   }
 
   /// 当前登录用户（`/login/status`）；未登录返回 `Ok(null)`。
+  ///
+  /// 只用来判断「有没有登录」。**不要拿它的 uid 查用户数据**：登录后这里返回的
+  /// 仍是设备游客 id，用它请求 `/user/detail/new` 会 404。真实 uid 走 [accountProfile]。
   Future<Result<UserProfile?>> loginProfile() async {
     final Result<Map<String, dynamic>> result = await _api.get('/login/status');
     return switch (result) {
       Ok(:final Map<String, dynamic> value) => Ok(toLoginProfile(value)),
       Err(:final AppError error) => Err<UserProfile?>(error),
+    };
+  }
+
+  /// 当前登录账号（`/user/account`）；游客返回 `Ok(null)`。
+  ///
+  /// 这里的 `account.id` 是真实 uid，用户详情、歌单列表都要用它。
+  Future<Result<UserProfile?>> accountProfile() async {
+    final Result<Map<String, dynamic>> result = await _api.get('/user/account');
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toAccountProfile(value)),
+      Err(:final AppError error) => Err<UserProfile?>(error),
+    };
+  }
+
+  // ---------- 我的 ----------
+
+  /// 用户详情（`/user/detail/new`）：昵称、头像、签名、关注数、等级、听歌数。
+  ///
+  /// 和 `/login/status` 的区别：那个只回答「当前是谁」，这里带上「我的」页要展示的统计。
+  Future<Result<UserProfile>> userDetailNew(int uid) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/user/detail/new',
+      <String, String>{'uid': '$uid'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => switch (toUserDetail(
+        value,
+        fallbackUid: uid,
+      )) {
+        final UserProfile profile => Ok(profile),
+        null => const Err<UserProfile>(AppError('用户信息为空')),
+      },
+      Err(:final AppError error) => Err<UserProfile>(error),
+    };
+  }
+
+  /// 会员等级与 SVIP 状态（`/vip/info/v2`）
+  Future<Result<({int level, bool svipActive})>> vipStatus() async {
+    final Result<Map<String, dynamic>> result = await _api.get('/vip/info/v2');
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toVipStatus(value)),
+      Err(:final AppError error) => Err<({int level, bool svipActive})>(error),
+    };
+  }
+
+  /// 能佩戴的徽章数（`/user/medal`）
+  ///
+  /// 必须带 uid：不传时上游按「当前会话」查，拿到的是 499 用户信息获取失败。
+  Future<Result<int>> badgeCount(int uid) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/user/medal',
+      <String, String>{'uid': '$uid'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toBadgeCount(value)),
+      Err(:final AppError error) => Err<int>(error),
+    };
+  }
+
+  /// 累计听歌小时数（`/listen/data/total`，接口给秒）
+  Future<Result<int>> listenHours() async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/listen/data/total',
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toListenHours(value)),
+      Err(:final AppError error) => Err<int>(error),
+    };
+  }
+
+  /// 创建 / 收藏的歌单数（`/user/subcount`）
+  Future<Result<({int created, int collected})>> subcount() async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/user/subcount',
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toSubcount(value)),
+      Err(:final AppError error) => Err<({int created, int collected})>(error),
     };
   }
 

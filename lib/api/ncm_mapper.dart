@@ -6,6 +6,7 @@
 /// - `home_block_mapper.dart` 首页区块（含播客、有声书的特殊结构）
 /// - `home_entry_mapper.dart` 首页入口卡
 /// - `track_mapper.dart`  榜单前三首歌名
+/// - `profile_mapper.dart` 「我的」页：用户详情、会员、徽章、听歌时长、歌单数
 ///
 /// 所有容错都收敛在这层：关键字段缺失返回 null 让上层过滤，页面里不做 `as` 强转。
 library;
@@ -14,4 +15,5 @@ export 'mapper/home_block_mapper.dart';
 export 'mapper/home_entry_mapper.dart';
 export 'mapper/json_utils.dart';
 export 'mapper/library_mapper.dart';
+export 'mapper/profile_mapper.dart';
 export 'mapper/track_mapper.dart';

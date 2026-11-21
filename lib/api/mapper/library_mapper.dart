@@ -15,6 +15,7 @@ Playlist? toPlaylist(Map<dynamic, dynamic> json) {
   if (id == 0 || name.isEmpty) {
     return null;
   }
+  final Map<dynamic, dynamic>? creator = asMap(json['creator']);
   return Playlist(
     id: id,
     name: name,
@@ -22,8 +23,13 @@ Playlist? toPlaylist(Map<dynamic, dynamic> json) {
         (json['picUrl'] as String?) ?? (json['coverImgUrl'] as String?) ?? '',
     playCount: asInt(json['playCount']),
     trackCount: asInt(json['trackCount']),
+    cloudTrackCount: asInt(json['cloudTrackCount']),
     copywriter: json['copywriter'] as String?,
     specialType: asInt(json['specialType']),
+    creatorName: (creator?['nickname'] as String?) ?? '',
+    creatorId: asInt(creator?['userId']),
+    subscribed: json['subscribed'] == true,
+    updateTime: asInt(json['updateTime']),
   );
 }
 
@@ -96,6 +102,9 @@ Song? toSong(Map<dynamic, dynamic> json) {
 ///
 /// 结构是 `{ data: { code, account, profile } }`——外层没有 code，**code 在 data 里**，
 /// 且 `account` 只有 id，昵称头像在 `profile`。
+///
+/// 注意：登录后这里返回的 `account.id` 仍然是**设备游客 id**，不是真实账号 uid，
+/// 依赖 uid 的接口（用户详情、歌单）必须用 [toAccountProfile] 拿到的 uid。
 UserProfile? toLoginProfile(Map<dynamic, dynamic> json) {
   final Object? data = json['data'];
   if (data is! Map) {
@@ -115,5 +124,30 @@ UserProfile? toLoginProfile(Map<dynamic, dynamic> json) {
     nickname: profile is Map ? (profile['nickname'] as String?) ?? '' : '',
     avatarUrl: profile is Map ? (profile['avatarUrl'] as String?) ?? '' : '',
     vipType: profile is Map ? asInt(profile['vipType']) : 0,
+  );
+}
+
+/// `/user/account` → 当前登录账号；游客返回 null。
+///
+/// 和 `/login/status` 的区别：这里的 `account.id` 是**真实 uid**（登录后
+/// `/login/status` 那个还是设备游客 id，用它查用户详情会 404），
+/// 且 `anonimousUser` 直接标明是不是游客身份。
+UserProfile? toAccountProfile(Map<dynamic, dynamic> json) {
+  final Map<dynamic, dynamic>? account = asMap(json['account']);
+  if (account == null || account['anonimousUser'] == true) {
+    return null;
+  }
+  final int uid = asInt(account['id']);
+  if (uid == 0) {
+    return null;
+  }
+  final Map<dynamic, dynamic>? profile = asMap(json['profile']);
+  return UserProfile(
+    uid: uid,
+    nickname: (profile?['nickname'] as String?) ?? '',
+    avatarUrl: (profile?['avatarUrl'] as String?) ?? '',
+    vipType: asInt(profile?['vipType'] ?? account['vipType']),
+    gender: asInt(profile?['gender']),
+    signature: (profile?['signature'] as String?) ?? '',
   );
 }

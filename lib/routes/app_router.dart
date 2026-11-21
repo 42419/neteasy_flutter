@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../api/ncm_repository.dart';
 import '../pages/main_page.dart';
 import '../stores/home_store.dart';
+import '../stores/profile_store.dart';
 import '../stores/session_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/cookie_store.dart';
@@ -27,13 +28,23 @@ Widget getRootWidget({required SharedPreferences prefs, HomeSnapshot? cached}) {
     snapshotStore: HomeSnapshotStore(),
     loggedInProvider: () => api.loggedIn,
   );
+  final ProfileStore profile = ProfileStore(
+    repo,
+    uidProvider: () => session.uid,
+  );
 
-  // 登录/登出后首页要重拉：「我的歌单」依赖登录态
-  session.onLoginChanged = home.load;
+  // 登录/登出后首页和「我的」页都要重拉：两者的数据都依赖登录态
+  session.onLoginChanged = () {
+    home.load();
+    profile.load();
+  };
   // 先把上次成功的结果铺到首屏（同步，不阻塞首帧），再恢复登录态并静默刷新。
   // 顺序不能反：restore 完成前 uid 还是 null，先 load 会漏掉「我的歌单」。
   home.hydrate(cached);
-  session.restore().whenComplete(home.load);
+  session.restore().whenComplete(() {
+    home.load();
+    profile.load();
+  });
 
   return MultiProvider(
     providers: [
@@ -41,6 +52,7 @@ Widget getRootWidget({required SharedPreferences prefs, HomeSnapshot? cached}) {
       Provider<NcmRepository>.value(value: repo),
       ChangeNotifierProvider<SessionStore>.value(value: session),
       ChangeNotifierProvider<HomeStore>.value(value: home),
+      ChangeNotifierProvider<ProfileStore>.value(value: profile),
     ],
     child: MaterialApp(
       title: 'neteasy',

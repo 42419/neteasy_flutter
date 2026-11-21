@@ -49,8 +49,11 @@ class SessionStore extends ChangeNotifier {
   VoidCallback? onLoginChanged;
 
   /// 冷启动恢复登录态：cookie 已在 ApiClient 里加载好，这里只确认一次。
+  ///
+  /// 用 `/user/account` 而不是 `/login/status`：后者登录后返回的 uid
+  /// 仍是设备游客 id，拿它查用户详情会 404。
   Future<void> restore() async {
-    final Result<UserProfile?> result = await _repo.loginProfile();
+    final Result<UserProfile?> result = await _repo.accountProfile();
     if (_disposed) {
       return;
     }
@@ -152,7 +155,7 @@ class SessionStore extends ChangeNotifier {
   }
 
   Future<void> _fetchProfile() async {
-    final Result<UserProfile?> result = await _repo.loginProfile();
+    final Result<UserProfile?> result = await _repo.accountProfile();
     if (_disposed) {
       return;
     }
