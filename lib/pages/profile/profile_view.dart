@@ -159,48 +159,66 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   /// 顶部工具栏：菜单 / 添加状态 / 新建 / 搜索 / 更多
+  ///
+  /// 「+ 添加状态」必须落在屏幕正中。用 Expanded 居中会被左右按钮的宽度差带偏
+  /// （左边 1 个、右边 3 个），所以整条用 Stack，三段各自对齐。
   Widget _buildTopBar(AppColors colors) {
     return SizedBox(
       height: 56,
-      child: Row(
+      child: Stack(
         children: <Widget>[
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.menu_rounded, size: 25),
-            color: colors.textPrimary,
-            tooltip: '菜单',
-          ),
-          Expanded(
-            child: Center(
-              child: TextButton(
-                onPressed: () {},
-                child: Text(
-                  '+ 添加状态',
-                  style: TextStyle(fontSize: 15, color: colors.textSecondary),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.menu_rounded, size: 25),
+                  color: colors.textPrimary,
+                  tooltip: '菜单',
                 ),
+              ],
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton(
+              onPressed: () {},
+              child: Text(
+                '+ 添加状态',
+                style: TextStyle(fontSize: 15, color: colors.textSecondary),
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.add_rounded, size: 26),
-            color: colors.textPrimary,
-            tooltip: '新建',
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.add_rounded, size: 26),
+                  color: colors.textPrimary,
+                  tooltip: '新建',
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.search_rounded, size: 24),
+                  color: colors.textPrimary,
+                  tooltip: '搜索',
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.more_vert_rounded, size: 24),
+                  color: colors.textPrimary,
+                  tooltip: '更多',
+                ),
+                const SizedBox(width: 2),
+              ],
+            ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search_rounded, size: 24),
-            color: colors.textPrimary,
-            tooltip: '搜索',
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert_rounded, size: 24),
-            color: colors.textPrimary,
-            tooltip: '更多',
-          ),
-          const SizedBox(width: 2),
         ],
       ),
     );
