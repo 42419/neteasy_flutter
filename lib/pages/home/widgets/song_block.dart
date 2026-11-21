@@ -17,6 +17,7 @@ class SongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Row(
       children: <Widget>[
         ClipRRect(
@@ -40,10 +41,10 @@ class SongTile extends StatelessWidget {
                       song.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         height: 1.3,
-                        color: AppTheme.textPrimary,
+                        color: colors.textPrimary,
                       ),
                     ),
                   ),
@@ -65,7 +66,7 @@ class SongTile extends StatelessWidget {
                       song.artistLine,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTheme.caption,
+                      style: AppTheme.caption(colors),
                     ),
                   ),
                 ],
@@ -74,11 +75,7 @@ class SongTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        const Icon(
-          Icons.play_arrow_rounded,
-          size: 26,
-          color: AppTheme.iconPlay,
-        ),
+        Icon(Icons.play_arrow_rounded, size: 26, color: colors.iconPlay),
       ],
     );
   }

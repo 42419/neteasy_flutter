@@ -11,6 +11,7 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
@@ -25,14 +26,14 @@ class SectionHeader extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.sectionTitle,
+              style: AppTheme.sectionTitle(colors),
             ),
           ),
           if (showMore)
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 25,
-              color: AppTheme.textPrimary,
+              color: colors.textPrimary,
             ),
         ],
       ),
@@ -52,24 +53,21 @@ class TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: filled ? 4 : 2, vertical: 1),
       decoration: BoxDecoration(
-        color: filled ? AppTheme.chipFill : null,
+        color: filled ? colors.chipFill : null,
         border: filled
             ? null
-            : Border.all(color: AppTheme.chipBorder, width: 0.5),
+            : Border.all(color: colors.chipBorder, width: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusChip),
       ),
       child: Text(
         text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 10,
-          height: 1.2,
-          color: AppTheme.chipText,
-        ),
+        style: TextStyle(fontSize: 10, height: 1.2, color: colors.chipText),
       ),
     );
   }

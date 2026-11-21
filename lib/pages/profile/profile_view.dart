@@ -18,6 +18,7 @@ class ProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
+    final AppColors colors = AppTheme.colorsOf(context);
     final SessionStore session = context.watch<SessionStore>();
 
     return SafeArea(
@@ -33,7 +34,7 @@ class ProfileView extends StatelessWidget {
             '我的',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -49,9 +50,9 @@ class ProfileView extends StatelessWidget {
               ),
             )
           else if (session.loggedIn)
-            _buildAccount(context, scheme, session)
+            _buildAccount(context, scheme, session, colors)
           else
-            _buildLoginEntry(context, theme, scheme),
+            _buildLoginEntry(context, theme, scheme, colors),
         ],
       ),
     );
@@ -61,34 +62,35 @@ class ProfileView extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme scheme,
+    AppColors colors,
   ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       decoration: BoxDecoration(
-        color: AppTheme.cardSurface,
+        color: colors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: <Widget>[
-          const CircleAvatar(
+          CircleAvatar(
             radius: 32,
-            backgroundColor: AppTheme.placeholder,
-            child: Icon(Icons.person, size: 34, color: AppTheme.textTertiary),
+            backgroundColor: colors.placeholder,
+            child: Icon(Icons.person, size: 34, color: colors.textTertiary),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '登录网易云账号',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             '登录后可看每日推荐、我的歌单与收藏',
             textAlign: TextAlign.center,
-            style: AppTheme.caption,
+            style: AppTheme.caption(colors),
           ),
           const SizedBox(height: 18),
           SizedBox(
@@ -117,6 +119,7 @@ class ProfileView extends StatelessWidget {
     BuildContext context,
     ColorScheme scheme,
     SessionStore session,
+    AppColors colors,
   ) {
     final UserProfile profile = session.profile!;
     return Column(
@@ -125,7 +128,7 @@ class ProfileView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: AppTheme.cardSurface,
+            color: colors.card,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -135,12 +138,9 @@ class ProfileView extends StatelessWidget {
                   width: 56,
                   height: 56,
                   child: profile.avatarUrl.isEmpty
-                      ? const ColoredBox(
-                          color: AppTheme.placeholder,
-                          child: Icon(
-                            Icons.person,
-                            color: AppTheme.textTertiary,
-                          ),
+                      ? ColoredBox(
+                          color: colors.placeholder,
+                          child: Icon(Icons.person, color: colors.textTertiary),
                         )
                       : Image.network(
                           profile.avatarUrl,
@@ -152,11 +152,11 @@ class ProfileView extends StatelessWidget {
                                 BuildContext context,
                                 Object error,
                                 StackTrace? stackTrace,
-                              ) => const ColoredBox(
-                                color: AppTheme.placeholder,
+                              ) => ColoredBox(
+                                color: colors.placeholder,
                                 child: Icon(
                                   Icons.person,
-                                  color: AppTheme.textTertiary,
+                                  color: colors.textTertiary,
                                 ),
                               ),
                         ),
@@ -175,10 +175,10 @@ class ProfileView extends StatelessWidget {
                             profile.displayName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: colors.textPrimary,
                             ),
                           ),
                         ),
@@ -190,7 +190,7 @@ class ProfileView extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('UID ${profile.uid}', style: AppTheme.caption),
+                    Text('UID ${profile.uid}', style: AppTheme.caption(colors)),
                   ],
                 ),
               ),

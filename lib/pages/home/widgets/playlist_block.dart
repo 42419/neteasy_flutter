@@ -24,6 +24,7 @@ class CoverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return SizedBox(
       width: 150,
       child: Column(
@@ -94,7 +95,7 @@ class CoverCard extends StatelessWidget {
               name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.cardTitle,
+              style: AppTheme.cardTitle(colors),
             ),
           ),
         ],

@@ -23,7 +23,8 @@ class RankCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Color> colors = palettes[index % palettes.length];
+    final List<Color> palette = palettes[index % palettes.length];
+    final AppColors colors = AppTheme.colorsOf(context);
     return SizedBox(
       width: 150,
       child: Column(
@@ -35,7 +36,7 @@ class RankCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               gradient: LinearGradient(
-                colors: colors,
+                colors: palette,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -97,7 +98,7 @@ class RankCard extends StatelessWidget {
             rank.trackLine,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppTheme.cardTitle,
+            style: AppTheme.cardTitle(colors),
           ),
         ],
       ),

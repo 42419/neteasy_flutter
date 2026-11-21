@@ -21,9 +21,10 @@ class CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     final String normalized = normalizeCoverUrl(url);
     if (normalized.isEmpty) {
-      return const ColoredBox(color: AppTheme.placeholder);
+      return ColoredBox(color: colors.placeholder);
     }
     final int preset = presets(logicalWidth);
     final String fullUrl = normalized.contains('?')
@@ -34,7 +35,7 @@ class CoverImage extends StatelessWidget {
       fit: StackFit.expand,
       children: <Widget>[
         // 底层灰色：图没到、加载失败时都露这一层
-        const ColoredBox(color: AppTheme.placeholder),
+        ColoredBox(color: colors.placeholder),
         CachedNetworkImage(
           imageUrl: fullUrl,
           fit: BoxFit.cover,

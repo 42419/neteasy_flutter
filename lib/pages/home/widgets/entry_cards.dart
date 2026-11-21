@@ -128,11 +128,12 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors paletteColors = AppTheme.colorsOf(context);
     return Container(
       width: 150,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        color: imageUrl.isEmpty ? null : AppTheme.placeholder,
+        color: imageUrl.isEmpty ? null : paletteColors.placeholder,
         gradient: imageUrl.isEmpty
             ? LinearGradient(
                 colors: colors,

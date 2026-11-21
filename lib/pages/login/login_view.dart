@@ -64,6 +64,7 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
+    final AppColors colors = AppTheme.colorsOf(context);
     final SessionStore session = context.watch<SessionStore>();
 
     if (session.qrState == QrLoginState.success && session.loggedIn) {
@@ -93,15 +94,12 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    _buildQrCard(session),
+                    _buildQrCard(session, colors),
                     const SizedBox(height: 20),
                     Text(
                       session.qrState.hint,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.textPrimary,
-                      ),
+                      style: TextStyle(fontSize: 15, color: colors.textPrimary),
                     ),
                     if (session.qrError != null) ...<Widget>[
                       const SizedBox(height: 6),
@@ -121,15 +119,15 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 24),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24),
               child: Text(
                 '二维码 5 分钟内有效\n请勿将二维码分享给他人',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.5,
-                  color: AppTheme.textTertiary,
+                  color: colors.textTertiary,
                 ),
               ),
             ),
@@ -139,20 +137,24 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  Widget _buildQrCard(SessionStore session) {
+  Widget _buildQrCard(SessionStore session, AppColors colors) {
     return Container(
       width: 240,
       height: 240,
       decoration: BoxDecoration(
+        // 二维码必须留白底，深色下也不能跟着变
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.placeholder),
+        border: Border.all(color: colors.placeholder),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          Padding(padding: const EdgeInsets.all(14), child: _buildQr(session)),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: _buildQr(session, colors),
+          ),
           if (session.qrState == QrLoginState.expired)
             Container(
               color: Colors.black.withValues(alpha: 0.55),
@@ -167,7 +169,7 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  Widget _buildQr(SessionStore session) {
+  Widget _buildQr(SessionStore session, AppColors colors) {
     switch (session.qrState) {
       case QrLoginState.loading:
       case QrLoginState.idle:
@@ -185,7 +187,7 @@ class _LoginViewState extends State<LoginView> {
       default:
         final Uint8List? bytes = session.qrBytes;
         if (bytes == null) {
-          return const Center(child: Text('加载失败', style: AppTheme.caption));
+          return Center(child: Text('加载失败', style: AppTheme.caption(colors)));
         }
         return Image.memory(bytes, fit: BoxFit.contain, gaplessPlayback: true);
     }

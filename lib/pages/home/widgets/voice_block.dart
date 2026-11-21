@@ -17,15 +17,16 @@ class VoiceTile extends StatelessWidget {
   /// 播客节目行高：官方约 92dp（封面 80），这里放 100 容下极端情况
   static const double rowHeight = 100;
 
-  static const TextStyle _titleStyle = TextStyle(
+  static TextStyle _titleStyle(AppColors colors) => TextStyle(
     fontSize: 16,
     height: 1.15,
     fontWeight: FontWeight.w500,
-    color: AppTheme.textPrimary,
+    color: colors.textPrimary,
   );
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     final String label = voice.labelTexts.isEmpty ? '' : voice.labelTexts.first;
     final String title = voice.displayName;
 
@@ -46,7 +47,7 @@ class VoiceTile extends StatelessWidget {
             builder: (BuildContext context, BoxConstraints constraints) {
               // 量一次标题实际占几行，剩下的高度留给简介
               final TextPainter titlePainter = TextPainter(
-                text: TextSpan(text: title, style: _titleStyle),
+                text: TextSpan(text: title, style: _titleStyle(colors)),
                 textDirection: Directionality.of(context),
                 textScaler: MediaQuery.textScalerOf(context),
                 maxLines: 2,
@@ -71,15 +72,14 @@ class VoiceTile extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       height: 1.2,
-                      color: AppTheme.textDescription,
-                    ),
+                    ).copyWith(color: colors.textDescription),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: _titleStyle,
+                    style: _titleStyle(colors),
                   ),
                   if (label.isNotEmpty || voice.desc.isNotEmpty) ...<Widget>[
                     const SizedBox(height: 5),
@@ -97,10 +97,10 @@ class VoiceTile extends StatelessWidget {
                             ),
                           TextSpan(
                             text: voice.desc,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               height: 1.2,
-                              color: AppTheme.textDescription,
+                              color: colors.textDescription,
                             ),
                           ),
                         ],
@@ -122,7 +122,7 @@ class VoiceTile extends StatelessWidget {
             child: Icon(
               Icons.play_arrow_rounded,
               size: 26,
-              color: AppTheme.iconPlay,
+              color: colors.iconPlay,
             ),
           ),
         ),
@@ -144,6 +144,7 @@ class BookTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
@@ -165,11 +166,11 @@ class BookTile extends StatelessWidget {
                 book.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   height: 1.25,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+                  color: colors.textPrimary,
                 ),
               ),
               if (book.desc.isNotEmpty) ...<Widget>[
@@ -178,10 +179,10 @@ class BookTile extends StatelessWidget {
                   book.desc,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.3,
-                    color: AppTheme.textDescription,
+                    color: colors.textDescription,
                   ),
                 ),
               ],
@@ -195,17 +196,17 @@ class BookTile extends StatelessWidget {
                       const SizedBox(width: 8),
                     ],
                     if (book.playCount.isNotEmpty) ...<Widget>[
-                      const Icon(
+                      Icon(
                         Icons.play_arrow_rounded,
                         size: 15,
-                        color: AppTheme.textTertiary,
+                        color: colors.textTertiary,
                       ),
                       Text(
                         book.playCount,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           height: 1.2,
-                          color: AppTheme.textTertiary,
+                          color: colors.textTertiary,
                         ),
                       ),
                     ],
@@ -224,11 +225,11 @@ class BookTile extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 book.score,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 21,
                   height: 1.1,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textDescription,
+                  color: colors.textDescription,
                 ),
               ),
             ),

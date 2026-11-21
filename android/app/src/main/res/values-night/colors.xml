@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 与 Dart 侧 AppTheme.backgroundDark 一致 -->
-    <color name="splash_background">#121212</color>
+    <!-- 与 Dart 侧 AppColors.dark.background 一致 -->
+    <color name="splash_background">#151515</color>
     <!-- 深色底上黑色描边等于隐形，必须换成白 -->
     <color name="splash_logo_tint">#FFFFFF</color>
 </resources>

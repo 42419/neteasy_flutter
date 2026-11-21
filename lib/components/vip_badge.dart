@@ -34,7 +34,6 @@ class VipBadge extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: height * 0.2),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
         border: Border.all(
           color: color.withValues(alpha: 0.33),
           width: height * 0.058,

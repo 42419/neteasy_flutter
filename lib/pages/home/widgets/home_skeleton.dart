@@ -294,11 +294,12 @@ class _Bone extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppTheme.placeholder,
+        color: colors.placeholder,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

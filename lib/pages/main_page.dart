@@ -21,7 +21,8 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 背景交给主题（浅 #F4F7FA / 深 #121212），别再写死浅色
+    final AppColors colors = AppTheme.colorsOf(context);
+    // 背景交给主题（浅 #F4F7FA / 深 #151515），别再写死浅色
     return Scaffold(
       body: IndexedStack(
         index: _index,
@@ -31,13 +32,13 @@ class _MainPageState extends State<MainPage> {
           ProfileView(),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(colors),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(AppColors colors) {
     return Container(
-      color: AppTheme.cardSurface,
+      color: colors.card,
       child: SafeArea(
         top: false,
         child: SizedBox(
@@ -48,16 +49,19 @@ class _MainPageState extends State<MainPage> {
                 index: 0,
                 asset: AppConstants.tabIconHome,
                 label: AppConstants.bottomTabLabels[0],
+                colors: colors,
               ),
               _buildNavItem(
                 index: 1,
                 asset: AppConstants.tabIconFollow,
                 label: AppConstants.bottomTabLabels[1],
+                colors: colors,
               ),
               _buildNavItem(
                 index: 2,
                 asset: AppConstants.tabIconMine,
                 label: AppConstants.bottomTabLabels[2],
+                colors: colors,
               ),
             ],
           ),
@@ -72,6 +76,7 @@ class _MainPageState extends State<MainPage> {
     required int index,
     required String asset,
     required String label,
+    required AppColors colors,
   }) {
     final bool selected = _index == index;
     return Expanded(
@@ -86,7 +91,7 @@ class _MainPageState extends State<MainPage> {
               asset,
               width: 24,
               height: 24,
-              color: selected ? AppTheme.textPrimary : AppTheme.textTertiary,
+              color: selected ? colors.textPrimary : colors.textTertiary,
               colorBlendMode: BlendMode.srcIn,
             ),
           ),
@@ -104,8 +109,11 @@ class _PlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return SafeArea(
-      child: Center(child: Text('$label 页待实现', style: AppTheme.caption)),
+      child: Center(
+        child: Text('$label 页待实现', style: AppTheme.caption(colors)),
+      ),
     );
   }
 }

@@ -10,6 +10,7 @@ class HomeTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return SizedBox(
       height: AppTheme.tabBarHeight,
       child: Row(
@@ -19,7 +20,7 @@ class HomeTopBar extends StatelessWidget {
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.menu, size: 24),
-            color: AppTheme.textPrimary,
+            color: colors.textPrimary,
             tooltip: '菜单',
           ),
           Expanded(
@@ -41,7 +42,7 @@ class HomeTopBar extends StatelessWidget {
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.search, size: 24),
-            color: AppTheme.textPrimary,
+            color: colors.textPrimary,
             tooltip: '搜索',
           ),
           const SizedBox(width: 4),
@@ -59,6 +60,7 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Transform.translate(
       offset: const Offset(0, 3),
       child: Column(
@@ -71,7 +73,7 @@ class _TabItem extends StatelessWidget {
               fontSize: 16,
               height: 1.2,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? AppTheme.textPrimary : AppTheme.textSecondary,
+              color: selected ? colors.textPrimary : colors.textSecondary,
             ),
           ),
           const SizedBox(height: 5),

@@ -29,7 +29,7 @@ class DailyRecommendPage extends StatelessWidget {
     final bool failed = store.error != null && store.songs.isEmpty;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.colorsOf(context).background,
       body: CustomScrollView(
         slivers: <Widget>[
           SliverToBoxAdapter(child: _Header(store: store)),
@@ -66,22 +66,33 @@ class _Header extends StatelessWidget {
     final DateTime now = DateTime.now();
     final String day = '${now.day}';
     final String month = now.month.toString().padLeft(2, '0');
+    // 深色下渐变要落回页面底色，不能落到白
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFFFFB687),
-            Color(0xFFFFAB84),
-            Color(0xFFFDAB8E),
-            Color(0xFFFBC7BB),
-            Color(0xFFFEF7F5),
-            Color(0xFFFFFFFF),
-          ],
-          // 渐变到 210dp 左右才开始淡出，300dp 处纯白
-          stops: <double>[0, 0.42, 0.70, 0.84, 0.95, 1],
+          colors: dark
+              ? const <Color>[
+                  Color(0xFFF0A176),
+                  Color(0xFFD9825B),
+                  Color(0xFF8A5647),
+                  Color(0xFF4A3230),
+                  Color(0xFF221A18),
+                  Color(0xFF151515),
+                ]
+              : const <Color>[
+                  Color(0xFFFFB687),
+                  Color(0xFFFFAB84),
+                  Color(0xFFFDAB8E),
+                  Color(0xFFFBC7BB),
+                  Color(0xFFFEF7F5),
+                  Color(0xFFFFFFFF),
+                ],
+          // 渐变到 210dp 左右才开始淡出，300dp 处与页面底色一致
+          stops: const <double>[0, 0.42, 0.70, 0.84, 0.95, 1],
         ),
       ),
       child: SafeArea(
@@ -263,6 +274,7 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.pagePadding, 8, 12, 4),
       child: SizedBox(
@@ -271,9 +283,9 @@ class _ActionBar extends StatelessWidget {
           children: <Widget>[
             const _BrandPlayButton(),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               '播放全部',
-              style: TextStyle(fontSize: 17, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 17, color: colors.textPrimary),
             ),
             const Spacer(),
             GestureDetector(
@@ -283,7 +295,7 @@ class _ActionBar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE6E6E6)),
+                  border: Border.all(color: colors.divider),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: store.refreshing
@@ -292,11 +304,11 @@ class _ActionBar extends StatelessWidget {
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 1.5),
                       )
-                    : const Text(
+                    : Text(
                         '换一批',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textPrimary,
+                          color: colors.textPrimary,
                         ),
                       ),
               ),
@@ -307,7 +319,7 @@ class _ActionBar extends StatelessWidget {
               AppConstants.multiselectIcon,
               width: 25,
               height: 25,
-              color: const Color(0xFF4A4A55),
+              color: colors.iconPlay,
               colorBlendMode: BlendMode.srcIn,
             ),
           ],
@@ -345,19 +357,20 @@ class _HintRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.pagePadding, 8, 12, 8),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 14,
-            color: Color(0xFFB0B0B0),
+            color: colors.textTertiary,
           ),
           const SizedBox(width: 6),
           Text(
             '根据你的音乐口味生成，每日6:00更新',
-            style: AppTheme.caption.copyWith(fontSize: 13),
+            style: AppTheme.caption(colors).copyWith(fontSize: 13),
           ),
         ],
       ),
@@ -391,6 +404,8 @@ class _SongRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppColors colors = AppTheme.colorsOf(context);
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: rowHeight,
       child: Padding(
@@ -415,10 +430,10 @@ class _SongRow extends StatelessWidget {
                     song.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       height: 1.25,
-                      color: AppTheme.textPrimary,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -432,7 +447,10 @@ class _SongRow extends StatelessWidget {
                         _Badge(
                           text: song.reason,
                           color: _vipColor,
-                          background: _reasonBg,
+                          // 深色下用暗红底，粉底在黑夜模式里太刺眼
+                          background: dark
+                              ? const Color(0xFF3A2222)
+                              : _reasonBg,
                         ),
                         const SizedBox(width: 4),
                       ],
@@ -441,7 +459,8 @@ class _SongRow extends StatelessWidget {
                           _meta,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTheme.caption.copyWith(fontSize: 12),
+                          style: AppTheme.caption(colors)
+                              .copyWith(fontSize: 12),
                         ),
                       ),
                     ],
@@ -455,7 +474,7 @@ class _SongRow extends StatelessWidget {
               Image.asset(
                 AppConstants.mvIcon,
                 height: 17,
-                color: const Color(0xFF9E9E9E),
+                color: colors.textSecondary,
                 colorBlendMode: BlendMode.srcIn,
               ),
               const SizedBox(width: 16),
@@ -468,7 +487,7 @@ class _SongRow extends StatelessWidget {
                   AppConstants.moreIcon,
                   width: 4,
                   height: 20,
-                  color: const Color(0xFF9E9E9E),
+                  color: colors.textSecondary,
                   colorBlendMode: BlendMode.srcIn,
                 ),
               ),
