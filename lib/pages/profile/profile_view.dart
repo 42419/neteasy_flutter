@@ -330,7 +330,7 @@ class _ProfileViewState extends State<ProfileView> {
                 IconButton(
                   onPressed: () {},
                   icon: SvgPicture.asset(
-                    'assets/icons/profile/search.svg',
+                    'assets/icons/search.svg',
                     width: 18,
                     height: 18,
                     colorFilter: ColorFilter.mode(

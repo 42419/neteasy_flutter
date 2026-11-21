@@ -1,3 +1,4 @@
+import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../constants/app_constants.dart';
@@ -41,7 +42,15 @@ class HomeTopBar extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.search, size: 24),
+            icon: SvgPicture.asset(
+              'assets/icons/search.svg',
+              width: 18,
+              height: 18,
+              colorFilter: ColorFilter.mode(
+                colors.textPrimary,
+                BlendMode.srcIn,
+              ),
+            ),
             color: colors.textPrimary,
             tooltip: '搜索',
           ),
