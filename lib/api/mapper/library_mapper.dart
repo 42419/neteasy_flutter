@@ -146,6 +146,7 @@ UserProfile? toAccountProfile(Map<dynamic, dynamic> json) {
     uid: uid,
     nickname: (profile?['nickname'] as String?) ?? '',
     avatarUrl: (profile?['avatarUrl'] as String?) ?? '',
+    backgroundUrl: (profile?['backgroundUrl'] as String?) ?? '',
     vipType: asInt(profile?['vipType'] ?? account['vipType']),
     gender: asInt(profile?['gender']),
     signature: (profile?['signature'] as String?) ?? '',

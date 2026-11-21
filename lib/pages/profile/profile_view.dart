@@ -40,6 +40,18 @@ class _ProfileViewState extends State<ProfileView> {
   /// 当前选中的标签：0 音乐 / 1 播客 / 2 笔记
   int _tab = 0;
 
+  /// 音乐标签下的小标签：0 近期 / 1 创建 / 2 收藏
+  int _listTab = 0;
+
+  /// 滚动距离：顶部工具栏折叠和背景淡出都看它
+  final ScrollController _scrollController = ScrollController();
+
+  /// 超过这个偏移，工具栏中间换成「小头像 + 昵称」
+  static const double _collapseOffset = 100;
+
+  /// 模糊背景在这个距离内淡到透明
+  static const double _fadeOffset = 220;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +61,12 @@ class _ProfileViewState extends State<ProfileView> {
         context.read<ProfileStore>().load();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -83,36 +101,82 @@ class _ProfileViewState extends State<ProfileView> {
     final UserProfile user = data.user;
     return Stack(
       children: <Widget>[
-        // 头像扩散模糊出来的背景；没有头像就退回纯色
+        // 头像扩散模糊出来的背景；往上滚时淡出，让列表落到纯色底上
         if (user.avatarUrl.isNotEmpty)
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             height: _headerHeight,
-            child: _buildBlurredAvatar(user.avatarUrl, colors),
+            child: AnimatedBuilder(
+              animation: _scrollController,
+              child: _buildBlurredAvatar(user.avatarUrl, colors),
+              builder: (BuildContext context, Widget? child) {
+                final double offset = _scrollController.hasClients
+                    ? _scrollController.offset
+                    : 0;
+                return Opacity(
+                  opacity: (1 - offset / _fadeOffset).clamp(0.0, 1.0),
+                  child: child,
+                );
+              },
+            ),
           ),
         SafeArea(
           bottom: false,
-          child: CustomScrollView(
-            slivers: <Widget>[
-              SliverToBoxAdapter(child: _buildTopBar(colors)),
-              SliverToBoxAdapter(child: _buildIdentity(user, data, colors)),
-              SliverToBoxAdapter(child: _buildQuickEntries(colors)),
-              SliverToBoxAdapter(child: _buildTabs(colors)),
-              if (_tab == 0) ...<Widget>[
-                SliverToBoxAdapter(child: _buildListTools(data, colors)),
-                SliverList.builder(
-                  itemCount: data.playlists.length,
-                  itemBuilder: (BuildContext context, int index) =>
-                      _buildPlaylistRow(data.playlists[index], colors),
+          child: Column(
+            children: <Widget>[
+              // 工具栏常驻；是否折叠只看滚动距离
+              AnimatedBuilder(
+                animation: _scrollController,
+                builder: (BuildContext context, Widget? child) {
+                  final double offset = _scrollController.hasClients
+                      ? _scrollController.offset
+                      : 0;
+                  return _buildTopBar(
+                    user,
+                    colors,
+                    collapsed: offset > _collapseOffset,
+                  );
+                },
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(
+                      child: _buildIdentity(user, data, colors),
+                    ),
+                    SliverToBoxAdapter(child: _buildQuickEntries(colors)),
+                    // 标签栏吸顶：滚过头部后始终贴在工具栏下面
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _PinnedHeaderDelegate(
+                        height: 52,
+                        child: _buildTabs(colors),
+                      ),
+                    ),
+                    if (_tab == 0) ...<Widget>[
+                      SliverToBoxAdapter(child: _buildListTools(data, colors)),
+                      SliverList.builder(
+                        itemCount: _visiblePlaylists(data).length,
+                        itemBuilder: (BuildContext context, int index) =>
+                            _buildPlaylistRow(
+                              _visiblePlaylists(data)[index],
+                              colors,
+                            ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _buildRecordRow(user, data, colors),
+                      ),
+                      SliverToBoxAdapter(child: _buildNewPlaylistRow(colors)),
+                    ] else
+                      SliverToBoxAdapter(child: _buildTabPlaceholder(colors)),
+                    // 给悬浮迷你播放器留空间
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
                 ),
-                SliverToBoxAdapter(child: _buildRecordRow(user, colors)),
-                SliverToBoxAdapter(child: _buildNewPlaylistRow(colors)),
-              ] else
-                SliverToBoxAdapter(child: _buildTabPlaceholder(colors)),
-              // 给悬浮迷你播放器留空间
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ),
             ],
           ),
         ),
@@ -158,11 +222,17 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  /// 顶部工具栏：菜单 / 添加状态 / 新建 / 搜索 / 更多
+  /// 顶部工具栏：菜单 / 添加状态（或小头像+昵称）/ 新建 / 搜索 / 更多
   ///
-  /// 「+ 添加状态」必须落在屏幕正中。用 Expanded 居中会被左右按钮的宽度差带偏
+  /// 中间那段必须落在屏幕正中。用 Expanded 居中会被左右按钮的宽度差带偏
   /// （左边 1 个、右边 3 个），所以整条用 Stack，三段各自对齐。
-  Widget _buildTopBar(AppColors colors) {
+  ///
+  /// [collapsed] 为 true 时（头像区已经滚上去）中间换成小头像 + 昵称。
+  Widget _buildTopBar(
+    UserProfile user,
+    AppColors colors, {
+    required bool collapsed,
+  }) {
     return SizedBox(
       height: 56,
       child: Stack(
@@ -184,12 +254,46 @@ class _ProfileViewState extends State<ProfileView> {
           ),
           Align(
             alignment: Alignment.center,
-            child: TextButton(
-              onPressed: () {},
-              child: Text(
-                '+ 添加状态',
-                style: TextStyle(fontSize: 15, color: colors.textSecondary),
-              ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: collapsed
+                  ? Row(
+                      key: const ValueKey<String>('collapsed'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ClipOval(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: user.avatarUrl.isEmpty
+                                ? ColoredBox(color: colors.placeholder)
+                                : _buildCover(user.avatarUrl, colors),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          user.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.2,
+                            color: colors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextButton(
+                      key: const ValueKey<String>('expanded'),
+                      onPressed: () {},
+                      child: Text(
+                        '+ 添加状态',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
             ),
           ),
           Align(
@@ -207,8 +311,8 @@ class _ProfileViewState extends State<ProfileView> {
                   onPressed: () {},
                   icon: SvgPicture.asset(
                     'assets/icons/profile/search.svg',
-                    width: 21,
-                    height: 21,
+                    width: 18,
+                    height: 18,
                     colorFilter: ColorFilter.mode(
                       colors.textPrimary,
                       BlendMode.srcIn,
@@ -241,7 +345,7 @@ class _ProfileViewState extends State<ProfileView> {
       children: <Widget>[
         const SizedBox(height: 12),
         _buildAvatar(user, colors),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -251,9 +355,8 @@ class _ProfileViewState extends State<ProfileView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 21,
+                  fontSize: 18,
                   height: 1.2,
-                  fontWeight: FontWeight.w600,
                   // SVIP 昵称是金色，普通用户和 VIP 都是白色
                   color: data.svipActive ? _svipNameColor : colors.textPrimary,
                 ),
@@ -349,7 +452,6 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  /// 「3 关注  1 粉丝  Lv.9  974 小时」
   Widget _buildStats(UserProfile user, ProfileSummary data, AppColors colors) {
     Widget item(String value, String label) {
       return Row(
@@ -360,9 +462,9 @@ class _ProfileViewState extends State<ProfileView> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 13,
               height: 1.2,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               color: colors.textPrimary,
             ),
           ),
@@ -433,7 +535,7 @@ class _ProfileViewState extends State<ProfileView> {
           color: dark
               ? Colors.white.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -471,87 +573,105 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  /// 三个标签：音乐 / 播客 / 笔记
+  /// 三个标签：音乐 / 播客 / 笔记。吸顶后要靠自己的底色盖住下面的列表
   Widget _buildTabs(AppColors colors) {
     const List<String> labels = <String>['音乐', '播客', '笔记'];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.pagePadding,
-        22,
-        AppTheme.pagePadding,
-        0,
-      ),
-      child: Row(
-        children: <Widget>[
-          for (int i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _tab = i),
-                behavior: HitTestBehavior.opaque,
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      labels[i],
-                      style: TextStyle(
-                        fontSize: 19,
-                        height: 1.2,
-                        fontWeight: i == _tab
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: i == _tab
-                            ? colors.textPrimary
-                            : colors.textSecondary,
+    return SizedBox(
+      height: 52,
+      child: ColoredBox(
+        color: colors.background,
+        child: Row(
+          children: <Widget>[
+            for (int i = 0; i < labels.length; i++)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _tab = i),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        labels[i],
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.2,
+                          color: i == _tab
+                              ? colors.textPrimary
+                              : colors.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 18,
-                      height: 2.5,
-                      decoration: BoxDecoration(
-                        color: i == _tab
-                            ? colors.textPrimary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(2),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 35,
+                        height: 2.5,
+                        decoration: BoxDecoration(
+                          color: i == _tab
+                              ? colors.textPrimary
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  /// 按小标签过滤：创建 = 自己建的（含「我喜欢的音乐」），收藏 = subscribed 为 true
+  List<Playlist> _visiblePlaylists(ProfileSummary data) {
+    switch (_listTab) {
+      case 1:
+        return data.playlists
+            .where(
+              (Playlist p) => p.creatorId == data.user.uid || !p.subscribed,
+            )
+            .toList();
+      case 2:
+        return data.playlists.where((Playlist p) => p.subscribed).toList();
+      default:
+        return data.playlists;
+    }
+  }
+
   /// 「近期  创建²  收藏²」+ 右侧排序按钮
+  ///
+  /// 只有选中的那个用主文字色，其余压成次要色；点一下会切换下面的列表。
   Widget _buildListTools(ProfileSummary data, AppColors colors) {
-    Widget tab(String label, int count) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.2,
-              fontWeight: FontWeight.w500,
-              color: colors.textPrimary,
-            ),
-          ),
-          if (count > 0)
-            Padding(
-              padding: const EdgeInsets.only(left: 1),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 9,
-                  height: 1.2,
-                  color: colors.textSecondary,
-                ),
+    Widget tab(String label, int count, int index) {
+      final bool selected = _listTab == index;
+      return GestureDetector(
+        onTap: () => setState(() => _listTab = index),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.2,
+                color: selected ? colors.textPrimary : colors.textSecondary,
               ),
             ),
-        ],
+            if (count > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: 1),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 9,
+                    height: 1.2,
+                    color: colors.textTertiary,
+                  ),
+                ),
+              ),
+          ],
+        ),
       );
     }
 
@@ -563,19 +683,26 @@ class _ProfileViewState extends State<ProfileView> {
         10,
       ),
       child: Row(
+        crossAxisAlignment: .center,
         children: <Widget>[
-          SvgPicture.asset(
-            'assets/icons/profile/recent_tab.svg',
-            width: 16,
-            height: 16,
-            colorFilter: ColorFilter.mode(colors.textPrimary, BlendMode.srcIn),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: SvgPicture.asset(
+              'assets/icons/profile/recent_tab.svg',
+              width: 15,
+              height: 15,
+              colorFilter: ColorFilter.mode(
+                colors.textSecondary,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
-          tab('近期', 0),
+          const SizedBox(width: 2),
+          tab('近期', 0, 0),
           const SizedBox(width: 22),
-          tab('创建', data.createdPlaylists),
+          tab('创建', data.createdPlaylists, 1),
           const SizedBox(width: 22),
-          tab('收藏', data.collectedPlaylists),
+          tab('收藏', data.collectedPlaylists, 2),
           const Spacer(),
           Icon(Icons.tune_rounded, size: 18, color: colors.textSecondary),
         ],
@@ -645,10 +772,14 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        Icon(
-                          Icons.favorite_border_rounded,
-                          size: 13,
-                          color: colors.textPrimary,
+                        SvgPicture.asset(
+                          'assets/icons/profile/heart_mode.svg',
+                          width: 13,
+                          height: 13,
+                          colorFilter: ColorFilter.mode(
+                            colors.textPrimary,
+                            BlendMode.srcIn,
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -676,8 +807,20 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  /// 「听歌排行」入口：图标 + 标题 + 累计听歌数，右侧「置顶」
-  Widget _buildRecordRow(UserProfile user, AppColors colors) {
+  /// 「听歌排行」入口：周榜第一的封面 + 柱状图标志 + 标题 + 累计听歌数，右侧「置顶」
+  ///
+  /// 封面是最近一周播放最多那首歌的封面；锁挂在「累计听歌 N 首」前面，不在标题旁。
+  Widget _buildRecordRow(
+    UserProfile user,
+    ProfileSummary data,
+    AppColors colors,
+  ) {
+    String cover = data.topSongCover;
+    if (cover.isEmpty) {
+      cover = user.backgroundUrl.isNotEmpty
+          ? user.backgroundUrl
+          : user.avatarUrl;
+    }
     return SizedBox(
       height: 68,
       child: Padding(
@@ -691,12 +834,25 @@ class _ProfileViewState extends State<ProfileView> {
                 color: colors.card,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: user.avatarUrl.isEmpty
-                  ? Icon(Icons.bar_chart_rounded, color: colors.textSecondary)
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: _buildCover(user.avatarUrl, colors),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  if (cover.isNotEmpty) _buildCover(cover, colors),
+                  // 柱状图标志压在封面正中间
+                  Center(
+                    child: SvgPicture.asset(
+                      'assets/icons/profile/rank.svg',
+                      width: 19,
+                      height: 19,
+                      colorFilter: ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
+                      ),
                     ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -704,54 +860,150 @@ class _ProfileViewState extends State<ProfileView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        '听歌排行',
-                        style: TextStyle(
-                          fontSize: 15,
-                          height: 1.3,
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      if (user.recordPrivate) ...<Widget>[
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.lock_outline_rounded,
-                          size: 12,
-                          color: colors.textTertiary,
-                        ),
-                      ],
-                    ],
+                  Text(
+                    '听歌排行',
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.3,
+                      color: colors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    '累计听歌${user.listenSongs}首',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.3,
-                      color: colors.textSecondary,
-                    ),
+                  Row(
+                    children: <Widget>[
+                      if (user.recordPrivate) ...<Widget>[
+                        SvgPicture.asset(
+                          'assets/icons/profile/lock.svg',
+                          width: 12,
+                          height: 12,
+                          colorFilter: ColorFilter.mode(
+                            colors.textTertiary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        '累计听歌${user.listenSongs}首',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.3,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Text('置顶', style: AppTheme.caption(colors)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SvgPicture.asset(
+                  'assets/icons/profile/pin.svg',
+                  width: 13,
+                  height: 13,
+                  colorFilter: ColorFilter.mode(
+                    colors.textSecondary,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Text('置顶', style: AppTheme.caption(colors)),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
+  /// 「新建歌单」「导入外部歌单」两行 + 底部说明
+  ///
+  /// 左边都是 48dp 的方块按钮，标题 15sp，导入那行多一句灰色副标题。
   Widget _buildNewPlaylistRow(AppColors colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.pagePadding,
-        10,
-        AppTheme.pagePadding,
-        0,
+    return Column(
+      children: <Widget>[
+        _buildActionRow(icon: Icons.add_rounded, title: '新建歌单', colors: colors),
+        _buildActionRow(
+          icon: Icons.login_rounded,
+          title: '导入外部歌单',
+          subtitle: '轻松导入其他 APP 里的歌单',
+          colors: colors,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.pagePadding,
+            18,
+            AppTheme.pagePadding,
+            8,
+          ),
+          child: Text(
+            '展示创建/收藏的 30 条内容，该列表仅自己可见',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: colors.textTertiary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionRow({
+    required IconData icon,
+    required String title,
+    String subtitle = '',
+    required AppColors colors,
+  }) {
+    return SizedBox(
+      height: 68,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.pagePadding),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: colors.card,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 26, color: colors.textPrimary),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.3,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.3,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Text('新建歌单', style: AppTheme.caption(colors)),
     );
   }
 
@@ -861,4 +1113,31 @@ class _ProfileViewState extends State<ProfileView> {
         SnackBar(content: Text(message), duration: const Duration(seconds: 1)),
       );
   }
+}
+
+/// 吸顶的标签栏：高度固定，滚过去之后一直贴在上面的工具栏下面
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PinnedHeaderDelegate({required this.height, required this.child});
+
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox(height: height, child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedHeaderDelegate oldDelegate) =>
+      oldDelegate.height != height || oldDelegate.child != child;
 }

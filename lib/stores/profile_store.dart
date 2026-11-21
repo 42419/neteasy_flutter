@@ -4,6 +4,7 @@ import '../api/ncm_repository.dart';
 import '../utils/result.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/profile_summary.dart';
+import '../viewmodels/song.dart';
 import '../viewmodels/user_profile.dart';
 
 /// 「我的」页数据。
@@ -63,6 +64,7 @@ class ProfileStore extends ChangeNotifier {
     final Future<Result<({int created, int collected})>> subFuture = _repo
         .subcount();
     final Future<Result<List<Playlist>>> listFuture = _repo.userPlaylists(uid);
+    final Future<Result<Song?>> topSongFuture = _repo.weeklyTopSong(uid);
 
     final Result<UserProfile> detail = await detailFuture;
     final Result<({int level, bool svipActive})> vip = await vipFuture;
@@ -70,6 +72,7 @@ class ProfileStore extends ChangeNotifier {
     final Result<int> hours = await hoursFuture;
     final Result<({int created, int collected})> sub = await subFuture;
     final Result<List<Playlist>> lists = await listFuture;
+    final Result<Song?> topSong = await topSongFuture;
 
     if (_disposed || generation != _generation) {
       return;
@@ -100,6 +103,7 @@ class ProfileStore extends ChangeNotifier {
       collectedPlaylists: sub is Ok<({int created, int collected})>
           ? sub.value.collected
           : 0,
+      topSongCover: topSong is Ok<Song?> ? (topSong.value?.coverUrl ?? '') : '',
       playlists: lists is Ok<List<Playlist>>
           ? _sortPlaylists(lists.value)
           : const <Playlist>[],

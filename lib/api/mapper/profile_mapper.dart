@@ -1,5 +1,7 @@
+import '../../viewmodels/song.dart';
 import '../../viewmodels/user_profile.dart';
 import 'json_utils.dart';
+import 'library_mapper.dart';
 
 /// `/user/detail/new` → 用户资料（含关注数、等级、听歌数）。
 ///
@@ -23,6 +25,7 @@ UserProfile? toUserDetail(Map<dynamic, dynamic> json, {int fallbackUid = 0}) {
         (profile?['avatarUrl'] as String?) ??
         (profile?['avatarImgUrl'] as String?) ??
         '',
+    backgroundUrl: (profile?['backgroundUrl'] as String?) ?? '',
     vipType: asInt(profile?['vipType']),
     gender: asInt(profile?['gender']),
     signature: (profile?['signature'] as String?) ?? '',
@@ -82,4 +85,18 @@ int toListenHours(Map<dynamic, dynamic> json) {
     created: asInt(json['createdPlaylistCount']),
     collected: asInt(json['subPlaylistCount']),
   );
+}
+
+/// `/user/record?type=1` → 最近一周播放最多的一首。
+///
+/// 注意 type 的语义和直觉相反：`type=1` 返回 `weekData`（最近一周），
+/// `type=0` 返回 `allData`（全部时间）。「听歌排行」的封面要用 weekData 第一首。
+Song? toWeeklyTopSong(Map<dynamic, dynamic> json) {
+  final Object? week = json['weekData'];
+  if (week is! List || week.isEmpty) {
+    return null;
+  }
+  final Map<dynamic, dynamic>? item = asMap(week.first);
+  final Map<dynamic, dynamic>? song = asMap(item?['song']);
+  return song == null ? null : toSong(song);
 }

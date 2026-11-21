@@ -264,6 +264,20 @@ class NcmRepository {
     };
   }
 
+  /// 最近一周播放最多的一首（`/user/record?type=1`）。
+  ///
+  /// `type=1` 才是最近一周（weekData），`type=0` 是全部时间；「听歌排行」封面用前者。
+  Future<Result<Song?>> weeklyTopSong(int uid) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/user/record',
+      <String, String>{'uid': '$uid', 'type': '1'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toWeeklyTopSong(value)),
+      Err(:final AppError error) => Err<Song?>(error),
+    };
+  }
+
   /// 取 `data.<field>`，缺失时返回空串
   String _readNested(Map<String, dynamic> json, String field) {
     final Object? data = json['data'];

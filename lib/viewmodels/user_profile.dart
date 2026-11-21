@@ -7,6 +7,7 @@ class UserProfile {
     required this.uid,
     required this.nickname,
     this.avatarUrl = '',
+    this.backgroundUrl = '',
     this.vipType = 0,
     this.gender = 0,
     this.signature = '',
@@ -20,6 +21,9 @@ class UserProfile {
   final int uid;
   final String nickname;
   final String avatarUrl;
+
+  /// 个人主页的背景图，「听歌排行」那行的封面用它
+  final String backgroundUrl;
 
   /// 0 = 非会员，>0 = 黑胶/VIP 等档位
   final int vipType;

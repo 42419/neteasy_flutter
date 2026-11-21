@@ -13,6 +13,7 @@ class ProfileSummary {
     this.listenHours = 0,
     this.createdPlaylists = 0,
     this.collectedPlaylists = 0,
+    this.topSongCover = '',
     this.playlists = const <Playlist>[],
   });
 
@@ -32,6 +33,9 @@ class ProfileSummary {
 
   final int createdPlaylists;
   final int collectedPlaylists;
+
+  /// 最近一周播放最多那首歌的封面，「听歌排行」那行的封面用它
+  final String topSongCover;
 
   /// 「近期」标签下的歌单：我喜欢的音乐固定第一，其余按更新时间倒序
   final List<Playlist> playlists;
