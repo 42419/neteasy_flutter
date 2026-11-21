@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../api/ncm_repository.dart';
+import '../utils/home_snapshot_store.dart';
 import '../utils/result.dart';
 import '../viewmodels/home_block.dart';
 import '../viewmodels/home_entry.dart';
+import '../viewmodels/home_snapshot.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
@@ -13,9 +17,21 @@ import '../viewmodels/song.dart';
 /// 主体是服务端按官方顺序返回的 `blocks`，页面按 blockCode 决定样式；
 /// 排行榜和「我的歌单」是独立接口，和区块并行加载。
 class HomeStore extends ChangeNotifier {
-  HomeStore(this._repo, {this.uidProvider, this.nicknameProvider});
+  HomeStore(
+    this._repo, {
+    this.uidProvider,
+    this.nicknameProvider,
+    this._snapshotStore,
+    this._loggedInProvider,
+  });
 
   final NcmRepository _repo;
+
+  /// 上次成功加载的快照；null 表示不落盘（测试里就是这么用的）
+  final HomeSnapshotStore? _snapshotStore;
+
+  /// 当前是否已登录。cookie 在建 ApiClient 时就能读到，早于 [restoreCached]
+  final bool Function()? _loggedInProvider;
 
   /// 当前登录用户 id 的来源；返回 null 表示未登录
   final int? Function()? uidProvider;
@@ -60,6 +76,53 @@ class HomeStore extends ChangeNotifier {
   /// 首页排行榜展示的卡片数
   static const int homeRankCount = 6;
 
+  /// 用启动时读到的快照铺首屏：同步、不等 IO，首帧就有内容。
+  ///
+  /// 启动时调用一次。之后的 [load] 会静默刷新并原地替换，因为此时已经有内容，
+  /// `loading` 不会再被置回 true，页面也就不会退回骨架屏。
+  void hydrate(HomeSnapshot? snapshot) {
+    if (snapshot == null || snapshot.isEmpty) {
+      return;
+    }
+    _blocks = snapshot.blocks;
+    _ranks = snapshot.ranks;
+    // 登录态才有数据的那几块（入口卡、我的歌单、每日推荐封面）只在身份一致时复用，
+    // 否则会把上一个账号的内容铺给游客
+    final bool loggedIn = _loggedInProvider?.call() ?? false;
+    if (loggedIn == snapshot.loggedIn) {
+      _entries = snapshot.entries;
+      _myPlaylists = snapshot.myPlaylists;
+      _dailyCover = snapshot.dailyCover;
+      _nickname = snapshot.nickname;
+      _uid = snapshot.uid;
+    }
+    _loading = false;
+    _safeNotify();
+  }
+
+  /// 把这次成功的结果落盘，下次冷启动直接铺。失败不影响当前会话。
+  void _persist() {
+    final HomeSnapshotStore? store = _snapshotStore;
+    if (store == null || _blocks.isEmpty) {
+      return;
+    }
+    unawaited(
+      store.save(
+        HomeSnapshot(
+          loggedIn: _uid != null,
+          uid: _uid,
+          nickname: _nickname,
+          dailyCover: _dailyCover,
+          entries: _entries,
+          blocks: _blocks,
+          ranks: _ranks,
+          myPlaylists: _myPlaylists,
+          savedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   /// 拉首页所需数据。下拉刷新、首次进入、登录状态变化都走这里。
   Future<void> load() async {
     final int generation = ++_generation;
@@ -101,6 +164,13 @@ class HomeStore extends ChangeNotifier {
 
     _uid = uid;
     _nickname = nickname;
+    if (uid == null) {
+      // 登出后这些「登录态才有」的数据必须清掉：入口卡和每日推荐接口对游客返回空，
+      // 下面的「空返回不覆盖」会让上一个账号的内容一直留着，还会被写进快照
+      _entries = const <HomeEntry>[];
+      _myPlaylists = const <Playlist>[];
+      _dailyCover = '';
+    }
     if (blocks is Ok<List<HomeBlock>>) {
       _blocks = blocks.value;
     }
@@ -123,6 +193,10 @@ class HomeStore extends ChangeNotifier {
     _error = (!hasAny && blocks is Err<List<HomeBlock>>)
         ? blocks.error.message
         : null;
+    // 只有区块这次真的取到了才落盘，避免网络抖动时把旧快照反复写一遍
+    if (blocks is Ok<List<HomeBlock>>) {
+      _persist();
+    }
     _loading = false;
     _safeNotify();
   }

@@ -9,12 +9,14 @@ import '../stores/home_store.dart';
 import '../stores/session_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/cookie_store.dart';
+import '../utils/home_snapshot_store.dart';
+import '../viewmodels/home_snapshot.dart';
 
 /// 应用根 Widget：注入 Provider + 主题 + 根页面。
 ///
 /// 启动顺序有讲究：先 `session.restore()` 恢复登录态，再 `home.load()` 拉首页。
 /// 反过来的话首次 load 读到的 uid 还是 null，「我的歌单」会漏掉一次。
-Widget getRootWidget({required SharedPreferences prefs}) {
+Widget getRootWidget({required SharedPreferences prefs, HomeSnapshot? cached}) {
   final ApiClient api = ApiClient(cookieStore: CookieStore(prefs));
   final NcmRepository repo = NcmRepository(api);
   final SessionStore session = SessionStore(repo, api);
@@ -22,10 +24,15 @@ Widget getRootWidget({required SharedPreferences prefs}) {
     repo,
     uidProvider: () => session.uid,
     nicknameProvider: () => session.profile?.nickname,
+    snapshotStore: HomeSnapshotStore(),
+    loggedInProvider: () => api.loggedIn,
   );
 
   // 登录/登出后首页要重拉：「我的歌单」依赖登录态
   session.onLoginChanged = home.load;
+  // 先把上次成功的结果铺到首屏（同步，不阻塞首帧），再恢复登录态并静默刷新。
+  // 顺序不能反：restore 完成前 uid 还是 null，先 load 会漏掉「我的歌单」。
+  home.hydrate(cached);
   session.restore().whenComplete(home.load);
 
   return MultiProvider(

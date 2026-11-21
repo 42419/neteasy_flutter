@@ -9,6 +9,7 @@ import '../../viewmodels/home_block.dart';
 import '../../viewmodels/playlist.dart';
 import '../daily/daily_recommend_page.dart';
 import 'widgets/entry_cards.dart';
+import 'widgets/home_skeleton.dart';
 import 'widgets/home_top_bar.dart';
 import 'widgets/playlist_block.dart';
 import 'widgets/rank_block.dart';
@@ -41,15 +42,10 @@ class HomeView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, HomeStore store) {
-    // 只有首次加载才整页转圈；下拉刷新时保留旧内容
+    // 只有首次加载（还没有快照可铺）才会走到这里：铺骨架而不是转圈。
+    // 下拉刷新时保留旧内容，由 RefreshIndicator 自己转。
     if (store.loading) {
-      return const Center(
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
-        ),
-      );
+      return HomeSkeleton(onRefresh: store.load);
     }
     final String? error = store.error;
     if (error != null) {
