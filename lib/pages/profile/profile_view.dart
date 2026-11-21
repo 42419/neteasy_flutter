@@ -34,6 +34,9 @@ class _ProfileViewState extends State<ProfileView> {
   /// 头像直径（截图量出来 73dp）
   static const double _avatarSize = 73;
 
+  /// SVIP 昵称的金色（截图上取到的亮部）
+  static const Color _svipNameColor = Color(0xFFFEE7B9);
+
   /// 当前选中的标签：0 音乐 / 1 播客 / 2 笔记
   int _tab = 0;
 
@@ -223,10 +226,11 @@ class _ProfileViewState extends State<ProfileView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 21,
                   height: 1.2,
                   fontWeight: FontWeight.w600,
-                  color: colors.textPrimary,
+                  // SVIP 昵称是金色，普通用户和 VIP 都是白色
+                  color: data.svipActive ? _svipNameColor : colors.textPrimary,
                 ),
               ),
             ),
@@ -241,12 +245,18 @@ class _ProfileViewState extends State<ProfileView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             if (user.gender != 0) ...<Widget>[
-              Icon(
-                user.isFemale ? Icons.female : Icons.male,
-                size: 15,
-                color: user.isFemale
-                    ? const Color(0xFFFF6B9A)
-                    : const Color(0xFF5AA8FF),
+              SvgPicture.asset(
+                user.isFemale
+                    ? 'assets/icons/profile/gender_female.svg'
+                    : 'assets/icons/profile/gender_male.svg',
+                width: 11,
+                height: 11,
+                colorFilter: ColorFilter.mode(
+                  user.isFemale
+                      ? const Color(0xFFFF6B9A)
+                      : const Color(0xFF5AA8FF),
+                  BlendMode.srcIn,
+                ),
               ),
               Text(' · ', style: AppTheme.caption(colors)),
             ],
@@ -274,11 +284,11 @@ class _ProfileViewState extends State<ProfileView> {
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: <BoxShadow>[
-          // 官方头像外面有一圈很淡的白光
+          // 官方头像外面有一圈很淡的白光，别调太亮，否则糊成一坨
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.18),
-            blurRadius: 12,
-            spreadRadius: 2,
+            color: Colors.white.withValues(alpha: 0.14),
+            blurRadius: 10,
+            spreadRadius: 1,
           ),
         ],
       ),
@@ -355,30 +365,36 @@ class _ProfileViewState extends State<ProfileView> {
 
   /// 快捷入口：最近 / 本地 / 网盘 / 云贝 + 右侧宫格（音乐应用页）
   Widget _buildQuickEntries(AppColors colors) {
-    const List<(IconData, String)> entries = <(IconData, String)>[
-      (Icons.schedule_rounded, '最近'),
-      (Icons.download_rounded, '本地'),
-      (Icons.cloud_upload_outlined, '网盘'),
-      (Icons.toll_outlined, '云贝'),
+    const List<(String, String)> entries = <(String, String)>[
+      ('assets/icons/profile/recent.svg', '最近'),
+      ('assets/icons/profile/local.svg', '本地'),
+      ('assets/icons/profile/cloud.svg', '网盘'),
+      ('assets/icons/profile/yunbei.svg', '云贝'),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.pagePadding, 0, 12, 0),
       child: Row(
         children: <Widget>[
-          for (final (IconData icon, String label) in entries) ...<Widget>[
-            Expanded(child: _buildQuickChip(icon, label, colors)),
+          for (final (String asset, String label) in entries) ...<Widget>[
+            Expanded(
+              child: _buildQuickChip(
+                asset: asset,
+                label: label,
+                colors: colors,
+              ),
+            ),
             const SizedBox(width: 8),
           ],
-          _buildQuickChip(Icons.grid_view_rounded, '', colors, square: true),
+          _buildQuickChip(colors: colors, square: true),
         ],
       ),
     );
   }
 
-  Widget _buildQuickChip(
-    IconData icon,
-    String label,
-    AppColors colors, {
+  Widget _buildQuickChip({
+    String? asset,
+    String label = '',
+    required AppColors colors,
     bool square = false,
   }) {
     final bool dark = Theme.of(context).brightness == Brightness.dark;
@@ -397,7 +413,22 @@ class _ProfileViewState extends State<ProfileView> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(icon, size: 16, color: colors.textPrimary),
+            if (asset != null)
+              SvgPicture.asset(
+                asset,
+                width: 15,
+                height: 15,
+                colorFilter: ColorFilter.mode(
+                  colors.textPrimary,
+                  BlendMode.srcIn,
+                ),
+              )
+            else
+              Icon(
+                Icons.grid_view_rounded,
+                size: 16,
+                color: colors.textPrimary,
+              ),
             if (label.isNotEmpty) ...<Widget>[
               const SizedBox(width: 5),
               Text(
