@@ -9,10 +9,10 @@ class ProfileSummary {
     required this.user,
     this.vipLevel = 0,
     this.svipActive = false,
-    this.badgeCount = 0,
-    this.listenHours = 0,
-    this.createdPlaylists = 0,
-    this.collectedPlaylists = 0,
+    this.badgeCount,
+    this.listenHours,
+    this.createdPlaylists,
+    this.collectedPlaylists,
     this.topSongCover = '',
     this.playlists = const <Playlist>[],
   });
@@ -25,14 +25,17 @@ class ProfileSummary {
   /// 黑胶 SVIP 是否在有效期内
   final bool svipActive;
 
-  /// 能佩戴的徽章数（不是接口里的 medalNum）
-  final int badgeCount;
+  /// 能佩戴的徽章数（不是接口里的 medalNum）。
+  ///
+  /// 下面四项统计为 null 表示接口失败、数字未知：页面不显示，
+  /// 不能当 0 画出来——「0 小时」「0 枚徽章」看起来像真实数据。
+  final int? badgeCount;
 
   /// 累计听歌小时数
-  final int listenHours;
+  final int? listenHours;
 
-  final int createdPlaylists;
-  final int collectedPlaylists;
+  final int? createdPlaylists;
+  final int? collectedPlaylists;
 
   /// 最近一周播放最多那首歌的封面，「听歌排行」那行的封面用它
   final String topSongCover;

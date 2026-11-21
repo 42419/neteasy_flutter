@@ -1,18 +1,17 @@
 import 'dart:ui' as ui;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../components/pull_to_refresh.dart';
-import '../../constants/app_constants.dart';
 import '../../stores/profile_store.dart';
 import '../../stores/session_store.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/playlist.dart';
 import '../../viewmodels/profile_summary.dart';
 import '../../viewmodels/user_profile.dart';
+import '../home/widgets/cover_image.dart';
 import '../login/login_view.dart';
 
 /// 「我的」页。
@@ -100,6 +99,8 @@ class _ProfileViewState extends State<ProfileView> {
     }
 
     final UserProfile user = data.user;
+    // 过滤 + 排序只在这里算一次，别放进 itemBuilder 里每行重算
+    final List<Playlist> visiblePlaylists = _visiblePlaylists(data);
     return Stack(
       children: <Widget>[
         // 头像扩散模糊出来的背景；往上滚时淡出，让列表落到纯色底上
@@ -172,10 +173,10 @@ class _ProfileViewState extends State<ProfileView> {
                               child: _buildListTools(data, colors),
                             ),
                             SliverList.builder(
-                              itemCount: _visiblePlaylists(data).length,
+                              itemCount: visiblePlaylists.length,
                               itemBuilder: (BuildContext context, int index) =>
                                   _buildPlaylistRow(
-                                    _visiblePlaylists(data)[index],
+                                    visiblePlaylists[index],
                                     colors,
                                   ),
                             ),
@@ -213,15 +214,8 @@ class _ProfileViewState extends State<ProfileView> {
         children: <Widget>[
           ImageFiltered(
             imageFilter: ui.ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-            child: CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              // 背景只需要一团颜色，取小图放大就够，省一次大图解码
-              memCacheWidth: 120,
-              httpHeaders: AppConstants.coverHeaders,
-              errorWidget: (BuildContext context, String url, Object error) =>
-                  const SizedBox.shrink(),
-            ),
+            // 背景只需要一团颜色，要个小图就够，不必把整张头像下下来
+            child: CoverImage(url: url, logicalWidth: 40),
           ),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -287,7 +281,7 @@ class _ProfileViewState extends State<ProfileView> {
                             height: 24,
                             child: user.avatarUrl.isEmpty
                                 ? ColoredBox(color: colors.placeholder)
-                                : _buildCover(user.avatarUrl, colors),
+                                : _buildCover(user.avatarUrl, logicalWidth: 24),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -392,7 +386,7 @@ class _ProfileViewState extends State<ProfileView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            if (user.gender != 0) ...<Widget>[
+            if (user.gender != 0)
               SvgPicture.asset(
                 user.isFemale
                     ? 'assets/icons/profile/gender_female.svg'
@@ -406,15 +400,18 @@ class _ProfileViewState extends State<ProfileView> {
                   BlendMode.srcIn,
                 ),
               ),
+            if (user.gender != 0 && data.badgeCount != null)
               Text(' · ', style: AppTheme.caption(colors)),
+            // 徽章数拿不到就整段不画，不显示「0枚徽章」
+            if (data.badgeCount != null) ...<Widget>[
+              Icon(
+                Icons.workspace_premium_outlined,
+                size: 14,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 3),
+              Text('${data.badgeCount}枚徽章', style: AppTheme.caption(colors)),
             ],
-            Icon(
-              Icons.workspace_premium_outlined,
-              size: 14,
-              color: colors.textSecondary,
-            ),
-            const SizedBox(width: 3),
-            Text('${data.badgeCount}枚徽章', style: AppTheme.caption(colors)),
           ],
         ),
         const SizedBox(height: 18),
@@ -446,17 +443,7 @@ class _ProfileViewState extends State<ProfileView> {
                 color: colors.placeholder,
                 child: Icon(Icons.person, color: colors.textTertiary),
               )
-            : CachedNetworkImage(
-                imageUrl: user.avatarUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 240,
-                httpHeaders: AppConstants.coverHeaders,
-                errorWidget: (BuildContext context, String url, Object error) =>
-                    ColoredBox(
-                      color: colors.placeholder,
-                      child: Icon(Icons.person, color: colors.textTertiary),
-                    ),
-              ),
+            : CoverImage(url: user.avatarUrl, logicalWidth: _avatarSize),
       ),
     );
   }
@@ -496,16 +483,20 @@ class _ProfileViewState extends State<ProfileView> {
       );
     }
 
+    // 等级缺失（0）和听歌时长未知（null）的项直接不画，别摆出 Lv.0 / 0 小时
+    final List<Widget> items = <Widget>[
+      item('${user.follows}', '关注'),
+      item('${user.followeds}', '粉丝'),
+      if (user.level > 0) item('Lv.${user.level}', ''),
+      if (data.listenHours != null) item('${data.listenHours}', '小时'),
+    ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        item('${user.follows}', '关注'),
-        const SizedBox(width: 18),
-        item('${user.followeds}', '粉丝'),
-        const SizedBox(width: 18),
-        item('Lv.${user.level}', ''),
-        const SizedBox(width: 18),
-        item('${data.listenHours}', '小时'),
+        for (int i = 0; i < items.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: 18),
+          items[i],
+        ],
       ],
     );
   }
@@ -661,7 +652,7 @@ class _ProfileViewState extends State<ProfileView> {
   ///
   /// 只有选中的那个用主文字色，其余压成次要色；点一下会切换下面的列表。
   Widget _buildListTools(ProfileSummary data, AppColors colors) {
-    Widget tab(String label, int count, int index) {
+    Widget tab(String label, int? count, int index) {
       final bool selected = _listTab == index;
       return GestureDetector(
         onTap: () => setState(() => _listTab = index),
@@ -678,7 +669,7 @@ class _ProfileViewState extends State<ProfileView> {
                 color: selected ? colors.textPrimary : colors.textSecondary,
               ),
             ),
-            if (count > 0)
+            if (count != null && count > 0)
               Padding(
                 padding: const EdgeInsets.only(left: 1),
                 child: Text(
@@ -745,7 +736,7 @@ class _ProfileViewState extends State<ProfileView> {
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: _buildCover(playlist.coverUrl, colors),
+                  child: _buildCover(playlist.coverUrl),
                 ),
               ),
               const SizedBox(width: 16),
@@ -858,7 +849,7 @@ class _ProfileViewState extends State<ProfileView> {
               child: Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  if (cover.isNotEmpty) _buildCover(cover, colors),
+                  if (cover.isNotEmpty) _buildCover(cover),
                   // 柱状图标志压在封面正中间
                   Center(
                     child: SvgPicture.asset(
@@ -1036,18 +1027,9 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildCover(String url, AppColors colors) {
-    if (url.isEmpty) {
-      return ColoredBox(color: colors.placeholder);
-    }
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      memCacheWidth: 150,
-      httpHeaders: AppConstants.coverHeaders,
-      errorWidget: (BuildContext context, String url, Object error) =>
-          ColoredBox(color: colors.placeholder),
-    );
+  /// 歌单、歌曲封面：走公用的 [CoverImage]（CDN 缩略图 + 灰底淡入）
+  Widget _buildCover(String url, {double logicalWidth = 48}) {
+    return CoverImage(url: url, logicalWidth: logicalWidth);
   }
 
   /// 未登录：保留原来的登录引导卡片

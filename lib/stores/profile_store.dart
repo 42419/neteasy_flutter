@@ -9,9 +9,10 @@ import '../viewmodels/user_profile.dart';
 
 /// 「我的」页数据。
 ///
-/// 一屏要六个接口：用户详情、会员、徽章、听歌时长、歌单数、歌单列表。
-/// 全部并行发出，任一失败只降级对应区块（例如徽章拿不到就显示 0），
+/// 一屏要七个接口：用户详情、会员、徽章、听歌时长、歌单数、歌单列表、听歌周榜
+/// （排行那一行的封面）。全部并行发出，任一失败只降级对应区块，
 /// 不让整页变错误页——这些统计本来就是锦上添花。
+/// 降级的办法是保留上一次的值；第一次就失败的统计保持为 null，页面不显示。
 class ProfileStore extends ChangeNotifier {
   ProfileStore(this._repo, {this.uidProvider});
 
@@ -19,6 +20,10 @@ class ProfileStore extends ChangeNotifier {
 
   /// 当前登录 uid；返回 null 表示未登录
   final int? Function()? uidProvider;
+
+  /// 歌单一次取全。服务端默认只给 30 个，而「近期」排序、「创建 / 收藏」过滤
+  /// 都在客户端做，取不全的话列表和标签上的数字会对不上。
+  static const int _playlistLimit = 1000;
 
   ProfileSummary? _data;
   bool _loading = false;
@@ -63,7 +68,10 @@ class ProfileStore extends ChangeNotifier {
     final Future<Result<int>> hoursFuture = _repo.listenHours();
     final Future<Result<({int created, int collected})>> subFuture = _repo
         .subcount();
-    final Future<Result<List<Playlist>>> listFuture = _repo.userPlaylists(uid);
+    final Future<Result<List<Playlist>>> listFuture = _repo.userPlaylists(
+      uid,
+      limit: _playlistLimit,
+    );
     final Future<Result<Song?>> topSongFuture = _repo.weeklyTopSong(uid);
 
     final Result<UserProfile> detail = await detailFuture;
@@ -89,24 +97,30 @@ class ProfileStore extends ChangeNotifier {
     }
 
     final UserProfile user = (detail as Ok<UserProfile>).value;
+    // 其余接口失败时沿用上一次的值，不要用 0 / 空列表把好数据盖掉
+    final ProfileSummary? previous = _data;
     _data = ProfileSummary(
       user: user,
-      vipLevel: vip is Ok<({int level, bool svipActive})> ? vip.value.level : 0,
+      vipLevel: vip is Ok<({int level, bool svipActive})>
+          ? vip.value.level
+          : (previous?.vipLevel ?? 0),
       svipActive: vip is Ok<({int level, bool svipActive})>
           ? vip.value.svipActive
-          : false,
-      badgeCount: badge is Ok<int> ? badge.value : 0,
-      listenHours: hours is Ok<int> ? hours.value : 0,
+          : (previous?.svipActive ?? false),
+      badgeCount: badge is Ok<int> ? badge.value : previous?.badgeCount,
+      listenHours: hours is Ok<int> ? hours.value : previous?.listenHours,
       createdPlaylists: sub is Ok<({int created, int collected})>
           ? sub.value.created
-          : 0,
+          : previous?.createdPlaylists,
       collectedPlaylists: sub is Ok<({int created, int collected})>
           ? sub.value.collected
-          : 0,
-      topSongCover: topSong is Ok<Song?> ? (topSong.value?.coverUrl ?? '') : '',
+          : previous?.collectedPlaylists,
+      topSongCover: topSong is Ok<Song?>
+          ? (topSong.value?.coverUrl ?? '')
+          : (previous?.topSongCover ?? ''),
       playlists: lists is Ok<List<Playlist>>
           ? _sortPlaylists(lists.value)
-          : const <Playlist>[],
+          : (previous?.playlists ?? const <Playlist>[]),
     );
     _error = null;
     _loading = false;
