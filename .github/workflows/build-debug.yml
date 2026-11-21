@@ -32,7 +32,7 @@ jobs:
       - name: 下载内嵌 Rust 后端（三 ABI）
         run: |
           set -euo pipefail
-          BASE="https://github.com/42419/neteasy-backend/releases/download/v0.3.0"
+          BASE="https://github.com/42419/neteasy-backend/releases/download/v0.5.0"
           DEST="android/app/src/main/jniLibs"
           for abi in arm64-v8a armeabi-v7a x86_64; do
             mkdir -p "$DEST/$abi"
@@ -41,9 +41,9 @@ jobs:
           done
           cd "$DEST"
           cat > /tmp/SHA256SUMS <<'EOF'
-          29864874e287cdfb62b19ac39747d0088eddde7839e8cc46e181b40271508465  arm64-v8a/libneteasy_backend.so
-          0f1a4bb9237bfc42d8a6df08dbc7370f27de071ea2a93c3880dd6d09fcb10427  armeabi-v7a/libneteasy_backend.so
-          91f03a581dc73fd9fd395a0df4e26261435426d51ff1440276cdbf45a7d9df1d  x86_64/libneteasy_backend.so
+          b8ff4960712972fa243f117a3eb472532261d179ad45b194935992faecc99822  arm64-v8a/libneteasy_backend.so
+          5793e0c2065619d0c514bd84aff8de4d503eee3edc4ed78b3321dbfb4816547f  armeabi-v7a/libneteasy_backend.so
+          60efbef8c31ed3dfe505a698433e1105fd4f15b3b01d6134eb3d455e6c887b0b  x86_64/libneteasy_backend.so
           EOF
           sha256sum -c /tmp/SHA256SUMS
 
