@@ -205,8 +205,15 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.search_rounded, size: 24),
-                  color: colors.textPrimary,
+                  icon: SvgPicture.asset(
+                    'assets/icons/profile/search.svg',
+                    width: 21,
+                    height: 21,
+                    colorFilter: ColorFilter.mode(
+                      colors.textPrimary,
+                      BlendMode.srcIn,
+                    ),
+                  ),
                   tooltip: '搜索',
                 ),
                 IconButton(
@@ -557,10 +564,11 @@ class _ProfileViewState extends State<ProfileView> {
       ),
       child: Row(
         children: <Widget>[
-          Icon(
-            Icons.bookmark_border_rounded,
-            size: 16,
-            color: colors.textPrimary,
+          SvgPicture.asset(
+            'assets/icons/profile/recent_tab.svg',
+            width: 16,
+            height: 16,
+            colorFilter: ColorFilter.mode(colors.textPrimary, BlendMode.srcIn),
           ),
           const SizedBox(width: 4),
           tab('近期', 0),
