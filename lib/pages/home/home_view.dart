@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/ncm_repository.dart';
+import '../../components/pull_to_refresh.dart';
 import '../../stores/daily_store.dart';
 import '../../stores/home_store.dart';
-import '../../theme/app_theme.dart';
 import '../../viewmodels/home_block.dart';
 import '../../viewmodels/playlist.dart';
 import '../daily/daily_recommend_page.dart';
@@ -65,11 +65,17 @@ class HomeView extends StatelessWidget {
     }
 
     final List<Widget> sections = _buildSections(context, store);
-    return RefreshIndicator(
+    return PullToRefresh(
       onRefresh: store.load,
-      color: AppTheme.brand,
-      child: CustomScrollView(
+      builder: (BuildContext context, double extraTop) => CustomScrollView(
+        // 允许越界：下拉时内容才会真的跟着手指走，
+        // 也才量得到负偏移喂给指示器
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         slivers: <Widget>[
+          // 刷新悬停时撑住位置，平时为 0
+          SliverToBoxAdapter(child: SizedBox(height: extraTop)),
           SliverToBoxAdapter(
             child: EntryCards(
               entries: store.entries,

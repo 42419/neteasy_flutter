@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/pull_to_refresh.dart';
 import '../../../theme/app_theme.dart';
 
 /// 首页骨架屏：还没有任何快照可铺时的首屏占位。
@@ -49,12 +50,14 @@ class _HomeSkeletonState extends State<HomeSkeleton>
   @override
   Widget build(BuildContext context) {
     final bool animate = _controller.isAnimating;
-    return RefreshIndicator(
+    return PullToRefresh(
       onRefresh: widget.onRefresh,
-      color: AppTheme.brand,
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+      builder: (BuildContext context, double extraTop) => CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         slivers: <Widget>[
+          SliverToBoxAdapter(child: SizedBox(height: extraTop)),
           SliverToBoxAdapter(
             child: _Section(
               animation: animate ? _controller : null,

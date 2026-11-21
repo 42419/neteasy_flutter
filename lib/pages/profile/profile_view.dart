@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../components/pull_to_refresh.dart';
 import '../../constants/app_constants.dart';
 import '../../stores/profile_store.dart';
 import '../../stores/session_store.dart';
@@ -141,40 +142,59 @@ class _ProfileViewState extends State<ProfileView> {
                 },
               ),
               Expanded(
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: <Widget>[
-                    SliverToBoxAdapter(
-                      child: _buildIdentity(user, data, colors),
-                    ),
-                    SliverToBoxAdapter(child: _buildQuickEntries(colors)),
-                    // 标签栏吸顶：滚过头部后始终贴在工具栏下面
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _PinnedHeaderDelegate(
-                        height: 52,
-                        child: _buildTabs(colors),
-                      ),
-                    ),
-                    if (_tab == 0) ...<Widget>[
-                      SliverToBoxAdapter(child: _buildListTools(data, colors)),
-                      SliverList.builder(
-                        itemCount: _visiblePlaylists(data).length,
-                        itemBuilder: (BuildContext context, int index) =>
-                            _buildPlaylistRow(
-                              _visiblePlaylists(data)[index],
-                              colors,
+                child: PullToRefresh(
+                  onRefresh: store.load,
+                  builder: (BuildContext context, double extraTop) =>
+                      CustomScrollView(
+                        controller: _scrollController,
+                        // 允许越界：下拉时内容才会真的跟着手指走，
+                        // 也才量得到负偏移喂给指示器
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        slivers: <Widget>[
+                          // 刷新悬停时撑住位置，松手与否都为 0
+                          SliverToBoxAdapter(child: SizedBox(height: extraTop)),
+                          SliverToBoxAdapter(
+                            child: _buildIdentity(user, data, colors),
+                          ),
+                          SliverToBoxAdapter(child: _buildQuickEntries(colors)),
+                          // 标签栏吸顶：滚过头部后始终贴在工具栏下面
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _PinnedHeaderDelegate(
+                              height: 52,
+                              child: _buildTabs(colors),
                             ),
+                          ),
+                          if (_tab == 0) ...<Widget>[
+                            SliverToBoxAdapter(
+                              child: _buildListTools(data, colors),
+                            ),
+                            SliverList.builder(
+                              itemCount: _visiblePlaylists(data).length,
+                              itemBuilder: (BuildContext context, int index) =>
+                                  _buildPlaylistRow(
+                                    _visiblePlaylists(data)[index],
+                                    colors,
+                                  ),
+                            ),
+                            SliverToBoxAdapter(
+                              child: _buildRecordRow(user, data, colors),
+                            ),
+                            SliverToBoxAdapter(
+                              child: _buildNewPlaylistRow(colors),
+                            ),
+                          ] else
+                            SliverToBoxAdapter(
+                              child: _buildTabPlaceholder(colors),
+                            ),
+                          // 给悬浮迷你播放器留空间
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 100),
+                          ),
+                        ],
                       ),
-                      SliverToBoxAdapter(
-                        child: _buildRecordRow(user, data, colors),
-                      ),
-                      SliverToBoxAdapter(child: _buildNewPlaylistRow(colors)),
-                    ] else
-                      SliverToBoxAdapter(child: _buildTabPlaceholder(colors)),
-                    // 给悬浮迷你播放器留空间
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                  ],
                 ),
               ),
             ],

@@ -41,6 +41,8 @@ dependencies:
   flutter_svg: ^2.4.0
   cached_network_image: ^4.0.7
   path_provider: ^2.1.6
+  # 下拉刷新的音符描边动画：进度要跟手指走，只能自己控帧
+  lottie: ^3.8.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -69,6 +71,7 @@ flutter:
     - assets/icons/vip/
     - assets/icons/vip/level/
     - assets/icons/profile/
+    - assets/anim/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
