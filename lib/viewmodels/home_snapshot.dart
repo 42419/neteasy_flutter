@@ -23,8 +23,12 @@ class HomeSnapshot {
     this.savedAt,
   });
 
-  /// 快照结构版本：模型字段变动时 +1，旧快照直接丢弃，不做兼容
-  static const int version = 1;
+  /// 快照结构版本：模型字段变动时 +1，旧快照直接丢弃，不做兼容。
+  ///
+  /// 2：歌单加了共享者字段（`sharedUserIds` / `creatorAvatarUrl`）。
+  /// 缺这两个字段解析不会崩（退空值），但首屏的共享歌单会少一枚角标；
+  /// 按「模型变动就作废」的约定抬版本，不做兼容。
+  static const int version = 2;
 
   /// 落盘时的登录态。与当前 cookie 状态不一致时，只复用公共区块
   final bool loggedIn;

@@ -28,9 +28,26 @@ Playlist? toPlaylist(Map<dynamic, dynamic> json) {
     specialType: asInt(json['specialType']),
     creatorName: (creator?['nickname'] as String?) ?? '',
     creatorId: asInt(creator?['userId']),
+    creatorAvatarUrl: (creator?['avatarUrl'] as String?) ?? '',
     subscribed: json['subscribed'] == true,
     updateTime: asInt(json['updateTime']),
+    sharedUserIds: _sharedUserIds(json['sharedUsers']),
   );
+}
+
+/// `sharedUsers[].userId`。
+///
+/// 列表接口（`/user/playlist`）只给 uid、不给头像，而且**把自己也列在里面**。
+/// 所以这里只负责把 uid 捞出来，「谁是对方」由 `ProfileStore` 按当前登录 uid 判断。
+List<int> _sharedUserIds(Object? raw) {
+  if (raw is! List) {
+    return const <int>[];
+  }
+  return raw
+      .whereType<Map>()
+      .map((Map item) => asInt(item['userId']))
+      .where((int id) => id > 0)
+      .toList(growable: false);
 }
 
 Rank? toRank(Map<dynamic, dynamic> json) {

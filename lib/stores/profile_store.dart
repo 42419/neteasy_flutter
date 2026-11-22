@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../api/ncm_repository.dart';
@@ -32,6 +34,10 @@ class ProfileStore extends ChangeNotifier {
   /// 并发只认最后一次：登录态变化和下拉刷新可能先后触发
   int _generation = 0;
   bool _disposed = false;
+
+  /// 共享者 uid → 头像。列表接口每次刷新都不带头像，
+  /// 缓存住就只在首次（或没命中）时多打一次用户详情。
+  final Map<int, String> _sharedAvatarCache = <int, String>{};
 
   ProfileSummary? get data => _data;
 
@@ -124,6 +130,98 @@ class ProfileStore extends ChangeNotifier {
     );
     _error = null;
     _loading = false;
+    _safeNotify();
+
+    // 共享歌单的对方头像不在列表接口里（只给 userId），补一轮再通知
+    unawaited(_fillSharedAvatars(generation));
+  }
+
+  /// 给共享歌单挑出「对方」并补头像。
+  ///
+  /// 两个坑：
+  /// - `sharedUsers` 里**包含自己**，直接取第一个会把我的头像画到封面角上
+  /// - 别人建好共享给我的歌单，共享者列表里只有我自己，真正的「对方」是创建者
+  ///
+  /// 所以顺序是：先找共享者里不是我的那个，找不到就用创建者（且创建者不是我）。
+  /// 创建者头像列表接口直接带，不必再请求；共享者才要去查用户详情。
+  /// 整个补查不阻塞首屏——列表先渲染，头像回来再通知。
+  Future<void> _fillSharedAvatars(int generation) async {
+    final ProfileSummary? data = _data;
+    if (data == null) {
+      return;
+    }
+    final int selfUid = data.user.uid;
+    if (selfUid == 0) {
+      return;
+    }
+
+    // 歌单 id → 角标该显示谁的 uid
+    final Map<int, int> targetOf = <int, int>{};
+    for (final Playlist p in data.playlists) {
+      if (p.specialType != Playlist.sharedType ||
+          p.sharedAvatarUrl.isNotEmpty) {
+        continue;
+      }
+      final int target = p.sharedBadgeUid(selfUid);
+      if (target != 0) {
+        targetOf[p.id] = target;
+      }
+    }
+    if (targetOf.isEmpty) {
+      return;
+    }
+
+    final Map<int, String> avatars = <int, String>{};
+    // 创建者头像接口里就有，省一次请求
+    for (final Playlist p in data.playlists) {
+      final int? target = targetOf[p.id];
+      if (target != null &&
+          target == p.creatorId &&
+          p.creatorAvatarUrl.isNotEmpty) {
+        avatars[target] = p.creatorAvatarUrl;
+      }
+    }
+
+    final List<int> missing = <int>[];
+    for (final int uid in targetOf.values.toSet()) {
+      if (avatars.containsKey(uid)) {
+        continue;
+      }
+      final String? cached = _sharedAvatarCache[uid];
+      if (cached != null) {
+        avatars[uid] = cached;
+      } else {
+        missing.add(uid);
+      }
+    }
+
+    if (missing.isNotEmpty) {
+      await Future.wait(
+        missing.map((int uid) async {
+          final Result<UserProfile> result = await _repo.userDetailNew(uid);
+          if (result is Ok<UserProfile> && result.value.avatarUrl.isNotEmpty) {
+            avatars[uid] = result.value.avatarUrl;
+          }
+        }),
+      );
+      _sharedAvatarCache.addAll(avatars);
+    }
+    if (_disposed || generation != _generation || avatars.isEmpty) {
+      return;
+    }
+    // 用最新的 _data：等待期间可能又有一次 load 把列表换掉了
+    final ProfileSummary? latest = _data;
+    if (latest == null) {
+      return;
+    }
+
+    _data = latest.withPlaylists(<Playlist>[
+      for (final Playlist p in latest.playlists)
+        switch (avatars[targetOf[p.id]]) {
+          final String avatar => p.withSharedAvatar(avatar),
+          null => p,
+        },
+    ]);
     _safeNotify();
   }
 

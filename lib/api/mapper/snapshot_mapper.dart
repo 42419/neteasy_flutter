@@ -143,6 +143,10 @@ Map<String, dynamic> _playlistToJson(Playlist playlist) {
     'trackCount': playlist.trackCount,
     'copywriter': playlist.copywriter,
     'specialType': playlist.specialType,
+    // 只存原始数据：角标头像由 ProfileStore 按当前登录 uid 现算，
+    // 存进快照会把「当时算错/对方换头像」的结果固化下来
+    'sharedUserIds': playlist.sharedUserIds,
+    'creatorAvatarUrl': playlist.creatorAvatarUrl,
   };
 }
 
@@ -237,6 +241,8 @@ Playlist? _playlistFromJson(Map<dynamic, dynamic> json) {
     trackCount: asInt(json['trackCount']),
     copywriter: json['copywriter'] == null ? null : _text(json['copywriter']),
     specialType: asInt(json['specialType']),
+    sharedUserIds: _intList(json['sharedUserIds']),
+    creatorAvatarUrl: _text(json['creatorAvatarUrl']),
   );
 }
 
@@ -248,4 +254,14 @@ List<String> _textList(Object? raw) {
     return const <String>[];
   }
   return raw.whereType<String>().toList(growable: false);
+}
+
+List<int> _intList(Object? raw) {
+  if (raw is! List) {
+    return const <int>[];
+  }
+  return raw
+      .whereType<num>()
+      .map((num value) => value.toInt())
+      .toList(growable: false);
 }

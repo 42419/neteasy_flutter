@@ -67,4 +67,19 @@ class ProfileSummary {
   }
 
   bool get isEmpty => user.uid == 0;
+
+  /// 只换歌单列表：共享者头像要等补查回来才填，其余字段不动
+  ProfileSummary withPlaylists(List<Playlist> playlists) {
+    return ProfileSummary(
+      user: user,
+      vipLevel: vipLevel,
+      svipActive: svipActive,
+      badgeCount: badgeCount,
+      listenHours: listenHours,
+      createdPlaylists: createdPlaylists,
+      collectedPlaylists: collectedPlaylists,
+      topSongCover: topSongCover,
+      playlists: playlists,
+    );
+  }
 }

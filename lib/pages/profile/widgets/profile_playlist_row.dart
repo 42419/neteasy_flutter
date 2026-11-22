@@ -1,6 +1,7 @@
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/cover_image.dart';
 import '../../../components/cover_thumb.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/playlist.dart';
@@ -31,7 +32,7 @@ class ProfilePlaylistRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.pagePadding),
           child: Row(
             children: <Widget>[
-              CoverThumb(url: playlist.coverUrl, size: 48),
+              _PlaylistCover(playlist: playlist),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -66,6 +67,51 @@ class ProfilePlaylistRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 歌单封面：共享歌单在右下角叠一枚「另一个用户」的头像。
+///
+/// 头像放在封面的 `ClipRRect` 外面，否则会被封面 4dp 圆角切掉一块。
+/// 官方这枚头像是裸圆，没有描边。
+class _PlaylistCover extends StatelessWidget {
+  const _PlaylistCover({required this.playlist});
+
+  final Playlist playlist;
+
+  /// 封面边长，同时决定头像尺寸
+  static const double size = 48;
+
+  /// 头像直径 = 封面的三分之一
+  static const double _avatarSize = size * 0.28;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          CoverThumb(url: playlist.coverUrl, size: size),
+          if (playlist.sharedAvatarUrl.isNotEmpty)
+            Positioned(
+              right: 2,
+              bottom: 2,
+              child: ClipOval(
+                child: SizedBox(
+                  width: _avatarSize,
+                  height: _avatarSize,
+                  child: CoverImage(
+                    url: playlist.sharedAvatarUrl,
+                    logicalWidth: _avatarSize,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
