@@ -4,6 +4,13 @@ import 'package:neteasy_flutter/pages/home/widgets/section_parts.dart';
 import 'package:neteasy_flutter/theme/app_theme.dart';
 
 void main() {
+  /// 条目靠左铺满整行，和真实的歌曲 / 播客行一样。
+  /// 不能直接放 Text：RowPages 里是 Column，Text 会被水平居中，量出来的左边距就不对了
+  List<Widget> tiles() => <Widget>[
+    for (int i = 0; i < 7; i++)
+      Align(alignment: Alignment.centerLeft, child: Text('t$i')),
+  ];
+
   /// 400 宽、7 条（t0~t6）→ 3 页：[t0 t1 t2] [t3 t4 t5] [t6]
   Widget host() {
     return MaterialApp(
@@ -14,9 +21,7 @@ void main() {
             width: 400,
             child: RowPages(
               rowHeight: 58,
-              tiles: <Widget>[
-                for (int i = 0; i < 7; i++) Text('t$i'),
-              ],
+              tiles: tiles(),
             ),
           ),
         ),
@@ -63,9 +68,7 @@ void main() {
               width: 500,
               child: RowPages(
                 rowHeight: 58,
-                tiles: <Widget>[
-                  for (int i = 0; i < 7; i++) Text('t$i'),
-                ],
+                tiles: tiles(),
               ),
             ),
           ),
