@@ -74,6 +74,8 @@ flutter:
     - assets/icons/vip/
     - assets/icons/vip/level/
     - assets/icons/profile/
+    - assets/icons/mini_player/
+    - assets/images/
     - assets/anim/
 
   # To add assets to your application, add an assets section, like this:

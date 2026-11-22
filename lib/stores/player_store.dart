@@ -100,7 +100,9 @@ class PlayerStore extends ChangeNotifier {
     final String secure = url.startsWith('http://')
         ? 'https://${url.substring(7)}'
         : url;
-    return Uri.tryParse(secure.contains('?') ? secure : '$secure?param=300y300');
+    return Uri.tryParse(
+      secure.contains('?') ? secure : '$secure?param=300y300',
+    );
   }
 
   @override

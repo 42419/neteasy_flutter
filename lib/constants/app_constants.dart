@@ -43,6 +43,10 @@ class AppConstants {
   /// 行尾更多（⋮）
   static const String moreIcon = 'assets/icons/more.png';
 
+  /// 迷你播放器：封面底下的黑胶唱片，以及右侧的播放列表图标
+  static const String vinylDisc = 'assets/images/vinyl.webp';
+  static const String queueIcon = 'assets/icons/mini_player/queue.svg';
+
   /// 请求网易云图片 CDN（music.126.net）时必须带的头。
   ///
   /// CDN 对不同图片来源的 UA 策略不一致：官方运营图任何 UA 都放行，

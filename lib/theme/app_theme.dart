@@ -18,6 +18,8 @@ class AppColors {
     required this.chipText,
     required this.chipFill,
     required this.iconPlay,
+    required this.progressTrack,
+    required this.scrim,
   });
 
   /// 页面背景
@@ -54,6 +56,12 @@ class AppColors {
   /// 行尾的实心播放三角
   final Color iconPlay;
 
+  /// 进度环的底槽（迷你播放器的播放键外圈）
+  final Color progressTrack;
+
+  /// 底部渐隐遮罩的实色端（迷你播放器下方铺到屏幕底边的那块）
+  final Color scrim;
+
   /// 浅色：真机截图采样值
   static const AppColors light = AppColors(
     background: Color(0xFFF4F7FA),
@@ -68,6 +76,8 @@ class AppColors {
     chipText: Color(0xFF5975B2),
     chipFill: Color(0xFFE5EAF2),
     iconPlay: Color(0xFF4A4A55),
+    progressTrack: Color(0xFFC4C4C9),
+    scrim: Color(0xFFF4F7FA),
   );
 
   /// 深色：官方深色资源里背景 #151515、卡片 #1D1D20，
@@ -86,6 +96,8 @@ class AppColors {
     chipText: Color(0xFF8FA3C8),
     chipFill: Color(0xFF232833),
     iconPlay: Color(0xFFC4C4C8),
+    progressTrack: Color(0xFF606062),
+    scrim: Color(0xFF0D0D12),
   );
 }
 
