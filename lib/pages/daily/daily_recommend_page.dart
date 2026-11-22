@@ -13,9 +13,6 @@ import '../home/widgets/cover_image.dart';
 
 /// 每日推荐页：首页「每日推荐」卡进入，数据来自 `/recommend/songs`。
 ///
-/// 版式逐项量出来（406×904dp）：
-/// 渐变头（顶栏 52 + 留白 60 + 日期 55 + 运势行 30）、动作栏 48、
-/// 提示行 40、列表行 60。改数值前先对一遍截图。
 class DailyRecommendPage extends StatelessWidget {
   const DailyRecommendPage({super.key});
 
@@ -23,7 +20,7 @@ class DailyRecommendPage extends StatelessWidget {
   static const double _topBarHeight = 52;
 
   /// 顶栏到日期之间的留白，压掉整片会挤在一起
-  static const double _topGap = 60;
+  static const double _topGap = 54;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +46,6 @@ class DailyRecommendPage extends StatelessWidget {
               child: _ErrorView(message: store.error!, onRetry: store.load),
             )
           else ...<Widget>[
-            SliverToBoxAdapter(child: _ActionBar(store: store)),
             const SliverToBoxAdapter(child: _HintRow()),
             SliverList.builder(
               itemCount: store.songs.length,
@@ -62,8 +58,6 @@ class DailyRecommendPage extends StatelessWidget {
                 ),
               ),
             ),
-            // extendBody 下 Scaffold 会把底栏总高写进 MediaQuery 的 padding，
-            // 用它留白，最后一行才不会被迷你播放器压住
             SliverToBoxAdapter(
               child: SizedBox(
                 height: MediaQuery.paddingOf(context).bottom + 16,
@@ -76,7 +70,7 @@ class DailyRecommendPage extends StatelessWidget {
   }
 }
 
-/// 暖橙渐变头：返回 / 默认推荐·风格推荐 / 更多 / 日期 / 今日运势 / 历史日推
+/// 暖橙渐变头：返回 / 默认推荐·风格推荐 / 更多 / 日期 / 今日运势 / 历史日推 / 播放全部
 class _Header extends StatelessWidget {
   const _Header({required this.store});
 
@@ -87,7 +81,8 @@ class _Header extends StatelessWidget {
     final DateTime now = DateTime.now();
     final String day = '${now.day}';
     final String month = now.month.toString().padLeft(2, '0');
-    // 深色下渐变要落回页面底色，不能落到白
+
+    // 深色下渐变要落回页面底色
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -108,12 +103,12 @@ class _Header extends StatelessWidget {
                   Color(0xFFFFB687),
                   Color(0xFFFFAB84),
                   Color(0xFFFDAB8E),
-                  Color(0xFFFBC7BB),
-                  Color(0xFFFEF7F5),
-                  Color(0xFFFFFFFF),
+                  Color(0xFFF6C2AF),
+                  Color(0xFFF9EAE5),
+                  Color(0xFFF4F7FA),
                 ],
-          // 渐变到 210dp 左右才开始淡出，300dp 处与页面底色一致
-          stops: const <double>[0, 0.42, 0.70, 0.84, 0.95, 1],
+          // 延长暖色区域，让渐变自然延伸到播放全部一行
+          stops: const <double>[0, 0.40, 0.65, 0.80, 0.92, 1],
         ),
       ),
       child: SafeArea(
@@ -121,11 +116,11 @@ class _Header extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // 顶部导航栏
             SizedBox(
               height: DailyRecommendPage._topBarHeight,
               child: Stack(
                 children: <Widget>[
-                  // 胶囊严格居中，不跟着左右按钮的宽度走
                   const Center(child: _Segment()),
                   Row(
                     children: <Widget>[
@@ -147,7 +142,11 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 顶部导航栏与日期之间的间距
             const SizedBox(height: DailyRecommendPage._topGap),
+
+            // 日期
             Padding(
               padding: const EdgeInsets.only(left: AppTheme.pagePadding),
               child: Row(
@@ -175,12 +174,14 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 查看今日运势 / 历史日推
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppTheme.pagePadding,
                 6,
                 AppTheme.pagePadding,
-                14,
+                30,
               ),
               child: Row(
                 children: <Widget>[
@@ -201,6 +202,9 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 播放全部：现在也处于渐变背景内部
+            _ActionBar(store: store),
           ],
         ),
       ),
@@ -216,13 +220,14 @@ class _HistoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.22),
+          color: Colors.white.withValues(alpha: dark ? 0.16 : 0.20),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
@@ -247,11 +252,12 @@ class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 200,
       height: 32,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.20),
+        color: Colors.white.withValues(alpha: dark ? 0.18 : 0.22),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -260,7 +266,7 @@ class _Segment extends StatelessWidget {
             width: 100,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: dark ? const Color(0xFFE8DDD6) : Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Text(
@@ -296,6 +302,7 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppColors colors = AppTheme.colorsOf(context);
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.pagePadding, 8, 12, 4),
       child: SizedBox(
@@ -324,7 +331,11 @@ class _ActionBar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: colors.divider),
+                  border: Border.all(
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.28)
+                        : const Color(0xFF333333).withValues(alpha: 0.14),
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: store.refreshing
@@ -337,7 +348,9 @@ class _ActionBar extends StatelessWidget {
                         '换一批',
                         style: TextStyle(
                           fontSize: 12,
-                          color: colors.textPrimary,
+                          color: dark
+                              ? Colors.white.withValues(alpha: 0.90)
+                              : const Color(0xFF333333),
                         ),
                       ),
               ),
