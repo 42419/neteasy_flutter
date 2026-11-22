@@ -74,7 +74,8 @@ class HomeView extends StatelessWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
           for (final Widget section in sections)
-            SliverToBoxAdapter(child: section),
+            // 按 key 对号入座：区块增减、换位置时，各自的翻页位置不会串到别的区块上
+            SliverToBoxAdapter(key: section.key, child: section),
           // extendBody 下 Scaffold 把底栏总高写进 MediaQuery 的 padding，
           // 用它留白，最后一行才不会被迷你播放器压住
           SliverToBoxAdapter(
@@ -98,7 +99,9 @@ class HomeView extends StatelessWidget {
         return;
       }
       ranksAdded = true;
-      sections.add(RankSection(ranks: store.ranks));
+      sections.add(
+        RankSection(key: const ValueKey<String>('rank'), ranks: store.ranks),
+      );
     }
 
     void addMine() {
@@ -109,12 +112,19 @@ class HomeView extends StatelessWidget {
       sections.add(_buildMyPlaylistSection(store));
     }
 
+    // 同一个 blockCode 万一出现两次，key 也不能重复，否则整页会抛异常
+    final Map<String, int> seen = <String, int>{};
     for (final HomeBlock block in store.blocks) {
       if (block.blockCode == HomeBlock.mgcPlaylist) {
         addRanks();
         addMine();
       }
-      final Widget? section = _buildBlock(block);
+      final int occurrence = seen.update(
+        block.blockCode,
+        (int count) => count + 1,
+        ifAbsent: () => 0,
+      );
+      final Widget? section = _buildBlock(block, occurrence);
       if (section != null) {
         sections.add(section);
       }
@@ -128,7 +138,7 @@ class HomeView extends StatelessWidget {
   }
 
   /// 按 blockCode 选渲染方式；不认识或没内容返回 null（整块不画）。
-  Widget? _buildBlock(HomeBlock block) {
+  Widget? _buildBlock(HomeBlock block, int occurrence) {
     if (block.isEmpty) {
       return null;
     }
@@ -155,6 +165,7 @@ class HomeView extends StatelessWidget {
         return null;
     }
     return Column(
+      key: ValueKey<String>('${block.blockCode}#$occurrence'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (block.hasHeader)
@@ -185,6 +196,7 @@ class HomeView extends StatelessWidget {
         ? '我的歌单'
         : '${store.nickname}的歌单';
     return Column(
+      key: const ValueKey<String>('mine'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(title: title),
