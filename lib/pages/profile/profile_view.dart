@@ -190,9 +190,9 @@ class _ProfileViewState extends State<ProfileView> {
                             SliverToBoxAdapter(
                               child: _buildTabPlaceholder(colors),
                             ),
-                          // 给悬浮迷你播放器留空间
+                          // 迷你播放器在底栏里，内容区已被顶上去，这里只留个呼吸空间
                           const SliverToBoxAdapter(
-                            child: SizedBox(height: 100),
+                            child: SizedBox(height: 16),
                           ),
                         ],
                       ),

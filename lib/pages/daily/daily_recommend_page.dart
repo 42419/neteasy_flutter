@@ -2,9 +2,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../components/mini_player.dart';
 import '../../components/vip_badge.dart';
 import '../../constants/app_constants.dart';
 import '../../stores/daily_store.dart';
+import '../../stores/player_store.dart';
 import '../../theme/app_theme.dart';
 import '../../viewmodels/song.dart';
 import '../home/widgets/cover_image.dart';
@@ -27,9 +29,15 @@ class DailyRecommendPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final DailyStore store = context.watch<DailyStore>();
     final bool failed = store.error != null && store.songs.isEmpty;
+    // 只订阅「当前歌曲 id」：进度、缓冲这类高频变化不会重建整页
+    final int? playingId = context.select<PlayerStore, int?>(
+      (PlayerStore player) => player.currentSongId,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.colorsOf(context).background,
+      // 没有底栏的子页面：迷你播放器自己避开手势条
+      bottomNavigationBar: const MiniPlayerBar(safeBottom: true),
       body: CustomScrollView(
         slivers: <Widget>[
           SliverToBoxAdapter(child: _Header(store: store)),
@@ -44,10 +52,16 @@ class DailyRecommendPage extends StatelessWidget {
             SliverList.builder(
               itemCount: store.songs.length,
               itemBuilder: (BuildContext context, int index) =>
-                  _SongRow(song: store.songs[index]),
+                  _SongRow(
+                    song: store.songs[index],
+                    playing: store.songs[index].id == playingId,
+                    onTap: () => context.read<PlayerStore>().playQueue(
+                      store.songs,
+                      index: index,
+                    ),
+                  ),
             ),
-            // 给悬浮迷你播放器留位置
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
           ],
         ],
       ),
@@ -281,11 +295,19 @@ class _ActionBar extends StatelessWidget {
         height: 40,
         child: Row(
           children: <Widget>[
-            const _BrandPlayButton(),
-            const SizedBox(width: 10),
-            Text(
-              '播放全部',
-              style: TextStyle(fontSize: 17, color: colors.textPrimary),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.read<PlayerStore>().playQueue(store.songs),
+              child: Row(
+                children: <Widget>[
+                  const _BrandPlayButton(),
+                  const SizedBox(width: 10),
+                  Text(
+                    '播放全部',
+                    style: TextStyle(fontSize: 17, color: colors.textPrimary),
+                  ),
+                ],
+              ),
             ),
             const Spacer(),
             GestureDetector(
@@ -382,9 +404,18 @@ class _HintRow extends StatelessWidget {
 ///
 /// 官方行里没有播放键——右边第一个图标就是 MV，容易认错。
 class _SongRow extends StatelessWidget {
-  const _SongRow({required this.song});
+  const _SongRow({
+    required this.song,
+    required this.playing,
+    required this.onTap,
+  });
 
   final Song song;
+
+  /// 正在播放这一首：歌名染成品牌红
+  final bool playing;
+
+  final VoidCallback onTap;
 
   /// 行高，官方量出来就是 60
   static const double rowHeight = 60;
@@ -406,93 +437,96 @@ class _SongRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppColors colors = AppTheme.colorsOf(context);
     final bool dark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      height: rowHeight,
-      child: Padding(
-        padding: const EdgeInsets.only(left: AppTheme.pagePadding, right: 16),
-        child: Row(
-          children: <Widget>[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CoverImage(url: song.coverUrl, logicalWidth: 40),
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: rowHeight,
+        child: Padding(
+          padding: const EdgeInsets.only(left: AppTheme.pagePadding, right: 16),
+          child: Row(
+            children: <Widget>[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CoverImage(url: song.coverUrl, logicalWidth: 40),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    song.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.25,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: <Widget>[
-                      if (song.isVip) ...<Widget>[
-                        const VipBadge(height: VipBadge.rowHeight),
-                        const SizedBox(width: 4),
-                      ],
-                      if (song.reason.isNotEmpty) ...<Widget>[
-                        _Badge(
-                          text: song.reason,
-                          color: _vipColor,
-                          // 深色下用暗红底，粉底在黑夜模式里太刺眼
-                          background: dark
-                              ? const Color(0xFF3A2222)
-                              : _reasonBg,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      Flexible(
-                        child: Text(
-                          _meta,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.caption(colors)
-                              .copyWith(fontSize: 12),
-                        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      song.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.25,
+                        color: playing ? AppTheme.brand : colors.textPrimary,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: <Widget>[
+                        if (song.isVip) ...<Widget>[
+                          const VipBadge(height: VipBadge.rowHeight),
+                          const SizedBox(width: 4),
+                        ],
+                        if (song.reason.isNotEmpty) ...<Widget>[
+                          _Badge(
+                            text: song.reason,
+                            color: _vipColor,
+                            // 深色下用暗红底，粉底在黑夜模式里太刺眼
+                            background: dark
+                                ? const Color(0xFF3A2222)
+                                : _reasonBg,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Flexible(
+                          child: Text(
+                            _meta,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.caption(colors)
+                                .copyWith(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            if (song.mvId > 0) ...<Widget>[
-              // 有 MV 才画徽章：实测 19×17dp，右边距 16 接 ⋮
-              Image.asset(
-                AppConstants.mvIcon,
-                height: 17,
-                color: colors.textSecondary,
-                colorBlendMode: BlendMode.srcIn,
-              ),
-              const SizedBox(width: 16),
-            ],
-            SizedBox(
-              width: 24,
-              height: 40,
-              child: Center(
-                child: Image.asset(
-                  AppConstants.moreIcon,
-                  width: 4,
-                  height: 20,
+              const SizedBox(width: 8),
+              if (song.mvId > 0) ...<Widget>[
+                // 有 MV 才画徽章：实测 19×17dp，右边距 16 接 ⋮
+                Image.asset(
+                  AppConstants.mvIcon,
+                  height: 17,
                   color: colors.textSecondary,
                   colorBlendMode: BlendMode.srcIn,
                 ),
+                const SizedBox(width: 16),
+              ],
+              SizedBox(
+                width: 24,
+                height: 40,
+                child: Center(
+                  child: Image.asset(
+                    AppConstants.moreIcon,
+                    width: 4,
+                    height: 20,
+                    color: colors.textSecondary,
+                    colorBlendMode: BlendMode.srcIn,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

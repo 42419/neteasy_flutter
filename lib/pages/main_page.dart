@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../components/mini_player.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import 'home/home_view.dart';
@@ -32,7 +33,12 @@ class _MainPageState extends State<MainPage> {
           ProfileView(),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(colors),
+      // 迷你播放器叠在底栏上方；放进 bottomNavigationBar，
+      // Scaffold 会自动把内容区顶上去，不用各 tab 再留空白
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[const MiniPlayerBar(), _buildBottomNav(colors)],
+      ),
     );
   }
 

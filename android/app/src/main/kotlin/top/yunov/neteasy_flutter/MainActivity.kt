@@ -14,9 +14,11 @@ import com.airbnb.lottie.LottieAnimationView
 import com.airbnb.lottie.LottieProperty
 import com.airbnb.lottie.model.KeyPath
 import com.airbnb.lottie.value.LottieValueCallback
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity() {
+// audio_service 要求 Activity 与后台播放服务共用同一个 FlutterEngine，
+// 继承 AudioServiceActivity 即可，它本身就是 FlutterActivity。
+class MainActivity : AudioServiceActivity() {
     private var splashOverlay: FrameLayout? = null
     private var splashAnimation: LottieAnimationView? = null
     private var splashStarted = false

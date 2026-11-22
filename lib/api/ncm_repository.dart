@@ -4,6 +4,7 @@ import '../viewmodels/home_entry.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
+import '../viewmodels/song_url.dart';
 import '../viewmodels/user_profile.dart';
 import 'api_client.dart';
 import 'ncm_mapper.dart';
@@ -275,6 +276,27 @@ class NcmRepository {
     return switch (result) {
       Ok(:final Map<String, dynamic> value) => Ok(toWeeklyTopSong(value)),
       Err(:final AppError error) => Err<Song?>(error),
+    };
+  }
+
+  // ---------- 播放 ----------
+
+  /// 播放地址（`/song/url/v1`）。
+  ///
+  /// 地址有时效，播放前现取，不要缓存。没有地址（无版权、下架、VIP 且不能试听）
+  /// 返回 Err。[level] 是期望音质，服务端按账号权限降档：
+  /// standard / higher / exhigh（极高，320k）/ lossless …
+  Future<Result<SongUrl>> songUrl(int id, {String level = 'exhigh'}) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/song/url/v1',
+      <String, String>{'id': '$id', 'level': level},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => switch (toSongUrl(value)) {
+        final SongUrl url => Ok(url),
+        null => const Err<SongUrl>(AppError('暂时无法播放')),
+      },
+      Err(:final AppError error) => Err<SongUrl>(error),
     };
   }
 

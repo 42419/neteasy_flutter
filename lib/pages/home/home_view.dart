@@ -86,7 +86,7 @@ class HomeView extends StatelessWidget {
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
           for (final Widget section in sections)
             SliverToBoxAdapter(child: section),
-          // 给悬浮迷你播放器留空间
+          // 迷你播放器在底栏里，内容区已被顶上去，这里只留个呼吸空间
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
