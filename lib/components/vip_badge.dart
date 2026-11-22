@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../theme/app_theme.dart';
+
 /// VIP 小徽章：白底 + 浅红描边 + 红字。
 ///
 /// 官方每日推荐、歌单行、搜索结果里都是这个样式，别再手写一遍。
@@ -13,7 +15,7 @@ class VipBadge extends StatelessWidget {
     super.key,
     this.label = 'VIP',
     this.height = 12,
-    this.color = const Color(0xFFFF4B4B),
+    this.color = AppTheme.vipTag,
   });
 
   final String label;

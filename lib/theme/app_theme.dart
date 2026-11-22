@@ -3,6 +3,11 @@ import 'package:material_ui/material_ui.dart';
 /// 语义色。浅色 / 深色两套，页面统一从这里取，不要直接写死颜色。
 ///
 /// 深色：背景 `#151515`、卡片 `#1D1D20`，文字按 100 / 60 / 40% 白分层，描边 10% 白。
+///
+/// 命名口径：
+/// - `textXxx` 管文字，`divider` 管描边，`placeholder` 管图没到时的底色
+/// - `onMedia` 系列是**压在封面/渐变卡上的前景色**，不随深浅色变（底色本来就是图或渐变色）
+/// - `xxxScrim` 是压暗/提亮的半透明层，值写死在这里，页面不要再自己 `withValues`
 @immutable
 class AppColors {
   const AppColors({
@@ -20,6 +25,13 @@ class AppColors {
     required this.iconPlay,
     required this.progressTrack,
     required this.scrim,
+    required this.onMedia,
+    required this.onMediaSecondary,
+    required this.mediaScrim,
+    required this.countBadgeScrim,
+    required this.strongScrim,
+    required this.skeletonShine,
+    required this.floatingShadow,
   });
 
   /// 页面背景
@@ -62,6 +74,27 @@ class AppColors {
   /// 底部渐隐遮罩的实色端（迷你播放器下方铺到屏幕底边的那块）
   final Color scrim;
 
+  /// 压在封面/渐变卡上的主文字与图标：纯白
+  final Color onMedia;
+
+  /// 媒体卡上的次要文字：75% 白（入口卡副标题、日期后的月份）
+  final Color onMediaSecondary;
+
+  /// 媒体卡底部压暗层：黑 45%，保证白字可读
+  final Color mediaScrim;
+
+  /// 播放量角标的底：黑 25%
+  final Color countBadgeScrim;
+
+  /// 强压暗层：黑 55%（二维码过期遮罩）
+  final Color strongScrim;
+
+  /// 骨架屏扫光的高光条：白 45%
+  final Color skeletonShine;
+
+  /// 浮起元素的投影（迷你播放器胶囊）。深色下投影只会糊成一团，压得很淡
+  final Color floatingShadow;
+
   /// 浅色：真机截图采样值
   static const AppColors light = AppColors(
     background: Color(0xFFF4F7FA),
@@ -78,6 +111,13 @@ class AppColors {
     iconPlay: Color(0xFF4A4A55),
     progressTrack: Color(0xFFC4C4C9),
     scrim: Color(0xFFF4F7FA),
+    onMedia: Color(0xFFFFFFFF),
+    onMediaSecondary: Color(0xBFFFFFFF),
+    mediaScrim: Color(0x73000000),
+    countBadgeScrim: Color(0x40000000),
+    strongScrim: Color(0x8C000000),
+    skeletonShine: Color(0x73FFFFFF),
+    floatingShadow: Color(0x0F000000),
   );
 
   /// 深色：官方深色资源里背景 #151515、卡片 #1D1D20，
@@ -98,6 +138,173 @@ class AppColors {
     iconPlay: Color(0xFFC4C4C8),
     progressTrack: Color(0xFF606062),
     scrim: Color(0xFF0D0D12),
+    onMedia: Color(0xFFFFFFFF),
+    onMediaSecondary: Color(0xBFFFFFFF),
+    mediaScrim: Color(0x73000000),
+    countBadgeScrim: Color(0x40000000),
+    strongScrim: Color(0x8C000000),
+    skeletonShine: Color(0x73FFFFFF),
+    floatingShadow: Color(0x47000000),
+  );
+}
+
+/// 每日推荐页的暖橙体系。
+///
+/// 这一页整片压在渐变上：白字、半透明白胶囊、深棕选中态都是它独有的，
+/// 塞进 [AppColors] 会让别的页面多出用不到的字段，所以单独成类。
+@immutable
+class DailyColors {
+  const DailyColors({
+    required this.headerGradient,
+    required this.headerGradientStops,
+    required this.segmentTrack,
+    required this.segmentThumb,
+    required this.segmentSelectedText,
+    required this.historyTrack,
+    required this.actionBorder,
+    required this.actionText,
+    required this.reasonChipColor,
+    required this.reasonChipBackground,
+    required this.dateSuffix,
+    required this.fortuneText,
+  });
+
+  /// 顶部渐变，从上到下 6 段；最后一段必须等于页面背景，否则会切出一条边
+  final List<Color> headerGradient;
+
+  /// 渐变的落点。暖色区延长到「播放全部」那一行，渐变才不会在按钮上方断掉
+  final List<double> headerGradientStops;
+
+  /// 顶栏胶囊底（默认推荐 / 风格推荐）
+  final Color segmentTrack;
+
+  /// 选中半区的滑块
+  final Color segmentThumb;
+
+  /// 选中半区的文字（深棕，压在浅色滑块上）
+  final Color segmentSelectedText;
+
+  /// 历史日推胶囊的底
+  final Color historyTrack;
+
+  /// 「换一批」的描边
+  final Color actionBorder;
+
+  /// 「换一批」的文字
+  final Color actionText;
+
+  /// 推荐语标签的字色（比品牌红更偏玫）
+  final Color reasonChipColor;
+
+  /// 推荐语标签的底（浅色粉底；深色用暗红，粉底在黑夜模式里太刺眼）
+  final Color reasonChipBackground;
+
+  /// 日期后面的「/月份」：80% 白
+  final Color dateSuffix;
+
+  /// 「查看今日运势」与它的箭头：92% 白
+  final Color fortuneText;
+
+  static const DailyColors light = DailyColors(
+    headerGradient: <Color>[
+      Color(0xFFFFB687),
+      Color(0xFFFFAB84),
+      Color(0xFFFDAB8E),
+      Color(0xFFF6C2AF),
+      Color(0xFFF9EAE5),
+      Color(0xFFF4F7FA),
+    ],
+    headerGradientStops: <double>[0, 0.40, 0.65, 0.80, 0.92, 1],
+    segmentTrack: Color(0x38FFFFFF),
+    segmentThumb: Color(0xFFFFFFFF),
+    segmentSelectedText: Color(0xFF3D2A22),
+    historyTrack: Color(0x33FFFFFF),
+    actionBorder: Color(0x24333333),
+    actionText: Color(0xFF333333),
+    reasonChipColor: Color(0xFFFF3A3A),
+    reasonChipBackground: Color(0xFFFFE9E9),
+    dateSuffix: Color(0xCCFFFFFF),
+    fortuneText: Color(0xEBFFFFFF),
+  );
+
+  static const DailyColors dark = DailyColors(
+    headerGradient: <Color>[
+      Color(0xFFF0A176),
+      Color(0xFFD9825B),
+      Color(0xFF8A5647),
+      Color(0xFF4A3230),
+      Color(0xFF221A18),
+      Color(0xFF151515),
+    ],
+    headerGradientStops: <double>[0, 0.40, 0.65, 0.80, 0.92, 1],
+    segmentTrack: Color(0x2EFFFFFF),
+    segmentThumb: Color(0xFFE8DDD6),
+    segmentSelectedText: Color(0xFF3D2A22),
+    historyTrack: Color(0x29FFFFFF),
+    actionBorder: Color(0x47FFFFFF),
+    actionText: Color(0xE6FFFFFF),
+    reasonChipColor: Color(0xFFFF3A3A),
+    reasonChipBackground: Color(0xFF3A2222),
+    dateSuffix: Color(0xCCFFFFFF),
+    fortuneText: Color(0xEBFFFFFF),
+  );
+}
+
+/// 「我的」页的专属颜色：SVIP 金色、性别图标、玻璃底快捷入口、头像光晕。
+@immutable
+class ProfileColors {
+  const ProfileColors({
+    required this.svipName,
+    required this.genderMale,
+    required this.genderFemale,
+    required this.quickChip,
+    required this.avatarRing,
+    required this.avatarGlow,
+    required this.blurScrimStartAlpha,
+    required this.blurScrimMidAlpha,
+  });
+
+  /// SVIP 昵称的金色（普通用户和 VIP 都用 textPrimary）
+  final Color svipName;
+
+  /// 性别图标
+  final Color genderMale;
+  final Color genderFemale;
+
+  /// 快捷入口的底：深色用 8% 白、浅色用 5% 黑，都能浮在模糊背景上
+  final Color quickChip;
+
+  /// 头像描边与外圈淡光
+  final Color avatarRing;
+  final Color avatarGlow;
+
+  /// 模糊头像往页面底色过渡的两段遮罩。
+  ///
+  /// 只存透明度、颜色用 `colors.background`：这样改页面底色时这层遮罩自动跟上，
+  /// 不会出现「背景换了、遮罩还是旧色」的接缝。
+  final double blurScrimStartAlpha;
+  final double blurScrimMidAlpha;
+
+  static const ProfileColors light = ProfileColors(
+    svipName: Color(0xFFFEE7B9),
+    genderMale: Color(0xFF5AA8FF),
+    genderFemale: Color(0xFFFF6B9A),
+    quickChip: Color(0x0D000000),
+    avatarRing: Color(0xFFFFFFFF),
+    avatarGlow: Color(0x24FFFFFF),
+    blurScrimStartAlpha: 0.72,
+    blurScrimMidAlpha: 0.90,
+  );
+
+  static const ProfileColors dark = ProfileColors(
+    svipName: Color(0xFFFEE7B9),
+    genderMale: Color(0xFF5AA8FF),
+    genderFemale: Color(0xFFFF6B9A),
+    quickChip: Color(0x14FFFFFF),
+    avatarRing: Color(0xFFFFFFFF),
+    avatarGlow: Color(0x24FFFFFF),
+    blurScrimStartAlpha: 0.62,
+    blurScrimMidAlpha: 0.86,
   );
 }
 
@@ -111,15 +318,51 @@ class AppTheme {
   /// 网易云品牌红：tab 选中、红心、强调。深浅色共用
   static const Color brand = Color(0xFFEC4141);
 
+  /// 行内 VIP 标签的红：比品牌红更偏玫，官方「每日推荐」「歌单行」用的都是它
+  static const Color vipTag = Color(0xFFFF4B4B);
+
   /// 当前主题的语义色。页面在 build 里取一次，往下传
   static AppColors colorsOf(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
       ? AppColors.dark
       : AppColors.light;
 
+  /// 每日推荐页的暖橙体系
+  static DailyColors dailyOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? DailyColors.dark
+      : DailyColors.light;
+
+  /// 「我的」页的专属色
+  static ProfileColors profileOf(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? ProfileColors.dark
+      : ProfileColors.light;
+
+  /// 首页 6 张入口卡的渐变（每日推荐 / 榜单推荐 / 心动模式 / 雷达歌单 / 漫游 / 相似歌曲）。
+  ///
+  /// 登录后官方只下发运营图，图没加载出来时要靠同色系渐变兜底，露白底很扎眼；
+  /// 游客态直接就是这套渐变。
+  static const List<List<Color>> entryGradients = <List<Color>>[
+    <Color>[Color(0xFF4A4A52), Color(0xFF23232A)],
+    <Color>[Color(0xFFFF6B6B), Color(0xFFD63B3B)],
+    <Color>[Color(0xFF3E5AA8), Color(0xFF23335F)],
+    <Color>[Color(0xFF2E1559), Color(0xFF050C20)],
+    <Color>[Color(0xFF91A83E), Color(0xFF5F5523)],
+    <Color>[Color(0xFF3EA888), Color(0xFF235F31)],
+  ];
+
+  /// 排行榜卡的渐变，按顺序循环：官方是绿 / 橙 / 蓝 / 紫几套
+  static const List<List<Color>> rankGradients = <List<Color>>[
+    <Color>[Color(0xFF7BD3A8), Color(0xFF3BAF7A)],
+    <Color>[Color(0xFFFFC46B), Color(0xFFF08C2E)],
+    <Color>[Color(0xFF9EC5FF), Color(0xFF5B8DEF)],
+    <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
+  ];
+
   // ---------- 间距 ----------
 
-  /// 区块之间的竖向间距
+  /// 区块之间的竖向间距（设计规范值，具体区块另有自己的内边距）
   static const double gap = 16;
 
   /// 页面左右边距（与官方 16dp 对齐）
@@ -133,6 +376,9 @@ class AppTheme {
   /// 播放量角标等小标签
   static const double radiusChip = 4;
 
+  /// 列表行里的小封面（歌单行、歌曲行、播客行都是这个）
+  static const double radiusThumb = 4;
+
   // ---------- 尺寸 ----------
 
   /// 顶部 tab 栏（不含状态栏）
@@ -141,8 +387,11 @@ class AppTheme {
   /// 底部导航
   static const double bottomNavHeight = 56;
 
-  /// 悬浮迷你播放器
-  static const double miniPlayerHeight = 56;
+  /// 列表行高：歌单行、听歌排行、新建歌单都是 68
+  static const double listRowHeight = 68;
+
+  // 迷你播放器的胶囊高度不在这里定义：它和唱片直径、圆角半径是同一个数，
+  // 改一处就得改三处，所以只认 `MiniPlayerBar.height`。
 
   // ---------- 文字 ----------
 
@@ -153,6 +402,14 @@ class AppTheme {
   /// 卡片标题（歌单名），最多两行
   static TextStyle cardTitle(AppColors colors) =>
       TextStyle(fontSize: 14, height: 1.35, color: colors.textPrimary);
+
+  /// 列表行标题：歌单名、听歌排行、新建歌单
+  static TextStyle listTitle(AppColors colors) =>
+      TextStyle(fontSize: 15, height: 1.3, color: colors.textPrimary);
+
+  /// 列表行副标题：歌单「歌单 · N首 · 创建者」、导入外部歌单的说明
+  static TextStyle listSubtitle(AppColors colors) =>
+      TextStyle(fontSize: 12, height: 1.3, color: colors.textSecondary);
 
   /// 辅助信息：副标题、播放量、占位提示
   static TextStyle caption(AppColors colors) =>

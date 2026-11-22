@@ -157,6 +157,7 @@ class _Shimmer extends StatelessWidget {
     if (animation == null) {
       return child;
     }
+    final Color shine = AppTheme.colorsOf(context).skeletonShine;
     return AnimatedBuilder(
       animation: animation,
       // child 不参与重建，每帧只重算 shader
@@ -170,9 +171,9 @@ class _Shimmer extends StatelessWidget {
               begin: Alignment(-1.8 + 3.4 * t, 0),
               end: Alignment(-0.8 + 3.4 * t, 0),
               colors: <Color>[
-                Colors.white.withValues(alpha: 0),
-                Colors.white.withValues(alpha: 0.45),
-                Colors.white.withValues(alpha: 0),
+                shine.withValues(alpha: 0),
+                shine,
+                shine.withValues(alpha: 0),
               ],
               stops: const <double>[0, 0.5, 1],
             ).createShader(bounds);

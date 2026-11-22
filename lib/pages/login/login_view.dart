@@ -143,7 +143,7 @@ class _LoginViewState extends State<LoginView> {
       height: 240,
       decoration: BoxDecoration(
         // 二维码必须留白底，深色下也不能跟着变
-        color: Colors.white,
+        color: colors.onMedia,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.placeholder),
       ),
@@ -157,11 +157,11 @@ class _LoginViewState extends State<LoginView> {
           ),
           if (session.qrState == QrLoginState.expired)
             Container(
-              color: Colors.black.withValues(alpha: 0.55),
+              color: colors.strongScrim,
               alignment: Alignment.center,
-              child: const Text(
+              child: Text(
                 '二维码已过期',
-                style: TextStyle(fontSize: 14, color: Colors.white),
+                style: TextStyle(fontSize: 14, color: colors.onMedia),
               ),
             ),
         ],

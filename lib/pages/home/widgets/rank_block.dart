@@ -13,17 +13,11 @@ class RankCard extends StatelessWidget {
   final Rank rank;
   final int index;
 
-  /// 按顺序循环。官方是绿/橙/蓝/紫几套。
-  static const List<List<Color>> palettes = <List<Color>>[
-    <Color>[Color(0xFF7BD3A8), Color(0xFF3BAF7A)],
-    <Color>[Color(0xFFFFC46B), Color(0xFFF08C2E)],
-    <Color>[Color(0xFF9EC5FF), Color(0xFF5B8DEF)],
-    <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final List<Color> palette = palettes[index % palettes.length];
+    // 按顺序循环，官方是绿 / 橙 / 蓝 / 紫几套
+    final List<Color> palette =
+        AppTheme.rankGradients[index % AppTheme.rankGradients.length];
     final AppColors colors = AppTheme.colorsOf(context);
     return SizedBox(
       width: 150,
@@ -48,11 +42,11 @@ class RankCard extends StatelessWidget {
                   child: Text(
                     rank.name,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       height: 1.1,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: colors.onMedia,
                     ),
                   ),
                 ),
@@ -64,30 +58,26 @@ class RankCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(
-                          Icons.headphones,
-                          size: 13,
-                          color: Colors.white,
-                        ),
+                        Icon(Icons.headphones, size: 13, color: colors.onMedia),
                         const SizedBox(width: 1),
                         Text(
                           formatCount(rank.playCount),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             height: 1.1,
-                            color: Colors.white,
+                            color: colors.onMedia,
                           ),
                         ),
                       ],
                     ),
                   ),
-                const Positioned(
+                Positioned(
                   right: 3,
                   bottom: 3,
                   child: Icon(
                     Icons.play_arrow_rounded,
                     size: 33,
-                    color: Colors.white,
+                    color: colors.onMedia,
                   ),
                 ),
               ],
