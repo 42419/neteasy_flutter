@@ -1,10 +1,10 @@
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/cover_thumb.dart';
 import '../../../constants/app_constants.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/home_block.dart';
-import 'cover_image.dart';
 import 'section_parts.dart';
 
 /// 歌曲行：官方「近期云村热播」样式。
@@ -20,14 +20,7 @@ class SongTile extends StatelessWidget {
     final AppColors colors = AppTheme.colorsOf(context);
     return Row(
       children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: CoverImage(url: song.imageUrl, logicalWidth: 48),
-          ),
-        ),
+        CoverThumb(url: song.imageUrl, size: 48, radius: 6),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -41,11 +34,7 @@ class SongTile extends StatelessWidget {
                       song.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.3,
-                        color: colors.textPrimary,
-                      ),
+                      style: AppTheme.listTitle(colors),
                     ),
                   ),
                   if (song.isVip) ...<Widget>[

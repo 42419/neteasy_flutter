@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/ncm_repository.dart';
+import '../../components/error_retry.dart';
 import '../../components/pull_to_refresh.dart';
 import '../../stores/daily_store.dart';
 import '../../stores/home_store.dart';
@@ -49,19 +50,7 @@ class HomeView extends StatelessWidget {
     }
     final String? error = store.error;
     if (error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(error, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: store.load, child: const Text('重试')),
-            ],
-          ),
-        ),
-      );
+      return ErrorRetry(message: error, onRetry: store.load);
     }
 
     final List<Widget> sections = _buildSections(context, store);

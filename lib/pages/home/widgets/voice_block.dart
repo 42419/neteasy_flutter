@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/cover_thumb.dart';
 import '../../../theme/app_theme.dart';
 import '../../../viewmodels/home_block.dart';
-import 'cover_image.dart';
 import 'section_parts.dart';
 
 /// 播客节目行：所属播客 / 节目标题 / 标签 + 简介。
@@ -33,14 +33,7 @@ class VoiceTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 80,
-            height: 80,
-            child: CoverImage(url: voice.imageUrl, logicalWidth: 80),
-          ),
-        ),
+        CoverThumb(url: voice.imageUrl, size: 80, radius: 6),
         const SizedBox(width: 12),
         Expanded(
           child: LayoutBuilder(
@@ -148,13 +141,13 @@ class BookTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            width: 64,
-            height: 80,
-            child: CoverImage(url: book.coverUrl, logicalWidth: 64),
-          ),
+        // 有声书封面是竖版 64×80
+        CoverThumb(
+          url: book.coverUrl,
+          size: 64,
+          width: 64,
+          height: 80,
+          radius: 6,
         ),
         const SizedBox(width: 12),
         Expanded(

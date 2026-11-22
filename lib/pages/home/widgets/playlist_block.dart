@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/cover_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/format.dart';
 import '../../../viewmodels/home_block.dart';
-import 'cover_image.dart';
 import 'section_parts.dart';
 
 /// 封面卡：歌单、播客这种「一张图 + 标题」的方块。
@@ -49,7 +49,7 @@ class CoverCard extends StatelessWidget {
                           vertical: 1,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
+                          color: colors.countBadgeScrim,
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusChip,
                           ),
@@ -57,18 +57,18 @@ class CoverCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            const Icon(
+                            Icon(
                               Icons.headphones,
                               size: 12,
-                              color: Colors.white,
+                              color: colors.onMedia,
                             ),
                             const SizedBox(width: 2),
                             Text(
                               formatCount(playCount),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 height: 1.2,
-                                color: Colors.white,
+                                color: colors.onMedia,
                               ),
                             ),
                           ],
@@ -76,13 +76,13 @@ class CoverCard extends StatelessWidget {
                       ),
                     ),
                   if (showPlay)
-                    const Positioned(
+                    Positioned(
                       right: 4,
                       bottom: 4,
                       child: Icon(
                         Icons.play_arrow_rounded,
                         size: 30,
-                        color: Colors.white,
+                        color: colors.onMedia,
                       ),
                     ),
                 ],

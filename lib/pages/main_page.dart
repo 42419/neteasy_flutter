@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../components/mini_player.dart';
+import '../components/empty_hint.dart';
+import '../components/mini_player/mini_player.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import 'home/home_view.dart';
@@ -29,10 +30,11 @@ class _MainPageState extends State<MainPage> {
       extendBody: true,
       body: IndexedStack(
         index: _index,
-        children: const <Widget>[
-          HomeView(),
-          _PlaceholderPage(label: '关注'),
-          ProfileView(),
+        children: <Widget>[
+          const HomeView(),
+          // 「关注」还没做。按约定：缺内容先放居中占位，不编假数据
+          const SafeArea(child: EmptyHint(text: '关注 页待实现')),
+          const ProfileView(),
         ],
       ),
       // 迷你播放器叠在底栏上方；放进 bottomNavigationBar，
@@ -110,23 +112,6 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 还没做的 tab 占位。按 yunfei 的约定：缺内容先用居中文字顶住。
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppColors colors = AppTheme.colorsOf(context);
-    return SafeArea(
-      child: Center(
-        child: Text('$label 页待实现', style: AppTheme.caption(colors)),
       ),
     );
   }

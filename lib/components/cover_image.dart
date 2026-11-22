@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../constants/app_constants.dart';
-import '../../../theme/app_theme.dart';
+import '../constants/app_constants.dart';
+import '../theme/app_theme.dart';
 
 /// 封面图：按显示宽度向 CDN 要对应档位的缩略图，灰底占位，加载完淡入。
 ///
@@ -11,6 +11,8 @@ import '../../../theme/app_theme.dart';
 /// - 一张封面只发一个请求。之前先挂 30px 模糊预览再换大图，一屏几十张封面
 ///   请求数翻倍，滑动时反而更卡
 /// - 已带 `?imageView=...` 的 URL 不再叠 `param`（CDN 只认第一个处理指令）
+///
+/// 首页、每日推荐、我的页、迷你播放器都用它，所以放在公用目录，不要再各写一份。
 class CoverImage extends StatelessWidget {
   const CoverImage({super.key, required this.url, this.logicalWidth = 150});
 

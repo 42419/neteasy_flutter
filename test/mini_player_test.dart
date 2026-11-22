@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:neteasy_flutter/components/mini_player.dart';
+import 'package:neteasy_flutter/components/mini_player/mini_player_scrim.dart';
 import 'package:neteasy_flutter/theme/app_theme.dart';
 
 /// 遮罩是纯布局，肉眼只能看出「有没有」：
