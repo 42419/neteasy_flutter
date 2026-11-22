@@ -5,7 +5,8 @@ import '../../../theme/app_theme.dart';
 
 /// 快捷入口：最近 / 本地 / 网盘 / 云贝 + 右侧宫格（音乐应用页）。
 ///
-/// 底是半透明玻璃色（深色 8% 白、浅色 5% 黑），能浮在模糊头像上。
+/// 底是 9% 白的半透明玻璃色，图标和字是 92% 白，浮在深色的模糊头部上
+/// （颜色取自官方截图，深浅色主题下一样）。
 /// 四个入口 + 宫格目前都没接页面，点了只弹一句提示。
 class ProfileQuickEntries extends StatelessWidget {
   const ProfileQuickEntries({super.key, required this.onTapEntry});
@@ -22,7 +23,6 @@ class ProfileQuickEntries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppColors colors = AppTheme.colorsOf(context);
     final ProfileColors profileColors = AppTheme.profileOf(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.pagePadding, 0, 12, 0),
@@ -33,7 +33,7 @@ class ProfileQuickEntries extends StatelessWidget {
               child: _QuickChip(
                 asset: asset,
                 label: label,
-                colors: colors,
+                content: profileColors.quickChipContent,
                 background: profileColors.quickChip,
                 onTap: () => onTapEntry(label),
               ),
@@ -41,7 +41,7 @@ class ProfileQuickEntries extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           _QuickChip(
-            colors: colors,
+            content: profileColors.quickChipContent,
             background: profileColors.quickChip,
             onTap: () => onTapEntry('音乐应用'),
           ),
@@ -54,14 +54,15 @@ class ProfileQuickEntries extends StatelessWidget {
 /// 单格：40dp 高，宫格那格是 40×40，其余按 Expanded 均分
 class _QuickChip extends StatelessWidget {
   const _QuickChip({
-    required this.colors,
+    required this.content,
     required this.background,
     required this.onTap,
     this.asset,
     this.label = '',
   });
 
-  final AppColors colors;
+  /// 图标和字的颜色
+  final Color content;
   final Color background;
   final VoidCallback onTap;
 
@@ -89,26 +90,15 @@ class _QuickChip extends StatelessWidget {
                 asset!,
                 width: 15,
                 height: 15,
-                colorFilter: ColorFilter.mode(
-                  colors.textPrimary,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: ColorFilter.mode(content, BlendMode.srcIn),
               )
             else
-              Icon(
-                Icons.grid_view_rounded,
-                size: 16,
-                color: colors.textPrimary,
-              ),
+              Icon(Icons.grid_view_rounded, size: 16, color: content),
             if (label.isNotEmpty) ...<Widget>[
               const SizedBox(width: 5),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.2,
-                  color: colors.textPrimary,
-                ),
+                style: TextStyle(fontSize: 13, height: 1.2, color: content),
               ),
             ],
           ],

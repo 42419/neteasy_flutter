@@ -11,13 +11,28 @@ import '../../../viewmodels/user_profile.dart';
 /// （左边 1 个、右边 3 个），所以整条用 Stack，三段各自对齐。
 ///
 /// [collapsed] 为 true 时（头像区已经滚上去）中间换成小头像 + 昵称。
+///
+/// 颜色由外面传：工具栏压在深色模糊头部上时是白的，头部滚走后要换回正文色，
+/// 这个渐变取决于滚动距离，页面算好再传进来。
 class ProfileTopBar extends StatelessWidget {
-  const ProfileTopBar({super.key, required this.user, required this.collapsed});
+  const ProfileTopBar({
+    super.key,
+    required this.user,
+    required this.collapsed,
+    required this.color,
+    required this.mutedColor,
+  });
 
   final UserProfile user;
 
   /// 头像区已滚出视口：中间换成小头像 + 昵称
   final bool collapsed;
+
+  /// 图标和昵称的颜色
+  final Color color;
+
+  /// 「+ 添加状态」这类弱提示的颜色
+  final Color mutedColor;
 
   /// 工具栏高度（不含状态栏）
   static const double height = 56;
@@ -39,7 +54,7 @@ class ProfileTopBar extends StatelessWidget {
                   // 侧栏还没做，先只占位
                   onPressed: () {},
                   icon: const Icon(Icons.menu_rounded, size: 25),
-                  color: colors.textPrimary,
+                  color: color,
                   tooltip: '菜单',
                 ),
               ],
@@ -74,7 +89,7 @@ class ProfileTopBar extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.2,
-                            color: colors.textPrimary,
+                            color: color,
                           ),
                         ),
                       ],
@@ -84,10 +99,7 @@ class ProfileTopBar extends StatelessWidget {
                       onPressed: () {},
                       child: Text(
                         '+ 添加状态',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colors.textSecondary,
-                        ),
+                        style: TextStyle(fontSize: 12, color: mutedColor),
                       ),
                     ),
             ),
@@ -100,7 +112,7 @@ class ProfileTopBar extends StatelessWidget {
                 IconButton(
                   onPressed: () {},
                   icon: const Icon(Icons.add_rounded, size: 26),
-                  color: colors.textPrimary,
+                  color: color,
                   tooltip: '新建',
                 ),
                 IconButton(
@@ -109,17 +121,14 @@ class ProfileTopBar extends StatelessWidget {
                     'assets/icons/search.svg',
                     width: 18,
                     height: 18,
-                    colorFilter: ColorFilter.mode(
-                      colors.textPrimary,
-                      BlendMode.srcIn,
-                    ),
+                    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
                   ),
                   tooltip: '搜索',
                 ),
                 IconButton(
                   onPressed: () {},
                   icon: const Icon(Icons.more_vert_rounded, size: 24),
-                  color: colors.textPrimary,
+                  color: color,
                   tooltip: '更多',
                 ),
                 const SizedBox(width: 2),

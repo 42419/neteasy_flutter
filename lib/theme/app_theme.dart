@@ -250,61 +250,92 @@ class DailyColors {
   );
 }
 
-/// 「我的」页的专属颜色：SVIP 金色、性别图标、玻璃底快捷入口、头像光晕。
+/// 「我的」页的专属颜色。
+///
+/// 官方这一页的头部**不随主题变**：头像放大模糊后压一层黑色遮罩，上面的字、图标、
+/// 快捷入口一律是白的，深浅色下长得一样。所以这里的「头部前景色」是固定的白，
+/// 不是 `AppColors.textPrimary`——后者在浅色下是黑的，压在深色头部上会看不见。
 @immutable
 class ProfileColors {
   const ProfileColors({
     required this.svipName,
     required this.genderMale,
     required this.genderFemale,
+    required this.onHeader,
+    required this.onHeaderSecondary,
+    required this.onHeaderMuted,
     required this.quickChip,
+    required this.quickChipContent,
     required this.avatarRing,
     required this.avatarGlow,
-    required this.blurScrimStartAlpha,
-    required this.blurScrimMidAlpha,
+    required this.headerFallback,
+    required this.blurScrimTopAlpha,
+    required this.blurScrimBottomAlpha,
   });
 
-  /// SVIP 昵称的金色（普通用户和 VIP 都用 textPrimary）
+  /// SVIP 昵称的金色（普通用户和 VIP 用 [onHeader]）
   final Color svipName;
 
   /// 性别图标
   final Color genderMale;
   final Color genderFemale;
 
-  /// 快捷入口的底：深色用 8% 白、浅色用 5% 黑，都能浮在模糊背景上
+  /// 头部上的前景色：数字、昵称、顶栏图标用 100% 白；
+  /// 统计标签、徽章数用 80%；「+ 添加状态」这类弱提示用 62%（截图取色折算）
+  final Color onHeader;
+  final Color onHeaderSecondary;
+  final Color onHeaderMuted;
+
+  /// 快捷入口的底：9% 白，浮在深色头部上（截图量得 #74645c → #80746c）
   final Color quickChip;
+
+  /// 快捷入口里的图标和字，92% 白
+  final Color quickChipContent;
 
   /// 头像描边与外圈淡光
   final Color avatarRing;
   final Color avatarGlow;
 
-  /// 模糊头像往页面底色过渡的两段遮罩。
-  ///
-  /// 只存透明度、颜色用 `colors.background`：这样改页面底色时这层遮罩自动跟上，
-  /// 不会出现「背景换了、遮罩还是旧色」的接缝。
-  final double blurScrimStartAlpha;
-  final double blurScrimMidAlpha;
+  /// 没有头像时头部的底色：取官方这张头像模糊后的平均色，保证白字有对比度
+  final Color headerFallback;
+
+  /// 黑色遮罩的两端透明度：头部上半段保持 [blurScrimTopAlpha]，
+  /// 往下渐隐到 [blurScrimBottomAlpha]。官方实测上端约 0.25、下端为 0；
+  /// 下端留一点点（0.06），免得浅色头像模糊出来的底太亮、白字糊掉。
+  final double blurScrimTopAlpha;
+  final double blurScrimBottomAlpha;
 
   static const ProfileColors light = ProfileColors(
     svipName: Color(0xFFFEE7B9),
     genderMale: Color(0xFF5AA8FF),
     genderFemale: Color(0xFFFF6B9A),
-    quickChip: Color(0x0D000000),
+    onHeader: Color(0xFFFFFFFF),
+    onHeaderSecondary: Color(0xCCFFFFFF),
+    onHeaderMuted: Color(0x9EFFFFFF),
+    quickChip: Color(0x17FFFFFF),
+    quickChipContent: Color(0xEBFFFFFF),
     avatarRing: Color(0xFFFFFFFF),
     avatarGlow: Color(0x24FFFFFF),
-    blurScrimStartAlpha: 0.72,
-    blurScrimMidAlpha: 0.90,
+    headerFallback: Color(0xFF7B6B65),
+    blurScrimTopAlpha: 0.25,
+    blurScrimBottomAlpha: 0.06,
   );
 
+  /// 深色下页面底是黑的，头部遮罩略重一点，和下面的面板拉开层次
   static const ProfileColors dark = ProfileColors(
     svipName: Color(0xFFFEE7B9),
     genderMale: Color(0xFF5AA8FF),
     genderFemale: Color(0xFFFF6B9A),
-    quickChip: Color(0x14FFFFFF),
+    onHeader: Color(0xFFFFFFFF),
+    onHeaderSecondary: Color(0xCCFFFFFF),
+    onHeaderMuted: Color(0x9EFFFFFF),
+    quickChip: Color(0x17FFFFFF),
+    quickChipContent: Color(0xEBFFFFFF),
     avatarRing: Color(0xFFFFFFFF),
     avatarGlow: Color(0x24FFFFFF),
-    blurScrimStartAlpha: 0.62,
-    blurScrimMidAlpha: 0.86,
+    headerFallback: Color(0xFF5A4F4B),
+    blurScrimTopAlpha: 0.32,
+    blurScrimBottomAlpha: 0.12,
   );
 }
 

@@ -8,8 +8,8 @@ import '../../../viewmodels/user_profile.dart';
 
 /// 头像、昵称、会员徽章、性别与徽章数、四项统计。
 ///
-/// 整块压在模糊背景上，所以文字统一用 `textPrimary`（深色下是白），
-/// 只有 SVIP 昵称例外——金色在深浅色下都成立。
+/// 整块压在深色的模糊头部上，文字一律用头部前景色（白，见 [ProfileColors]），
+/// 不跟主题走；SVIP 昵称是金色。
 class ProfileIdentity extends StatelessWidget {
   const ProfileIdentity({super.key, required this.user, required this.data});
 
@@ -39,10 +39,10 @@ class ProfileIdentity extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   height: 1.2,
-                  // SVIP 昵称是金色，普通用户和 VIP 都是主文字色
+                  // SVIP 昵称是金色，普通用户和 VIP 都是白
                   color: data.svipActive
                       ? profileColors.svipName
-                      : colors.textPrimary,
+                      : profileColors.onHeader,
                 ),
               ),
             ),
@@ -71,16 +71,19 @@ class ProfileIdentity extends StatelessWidget {
                 ),
               ),
             if (user.gender != 0 && data.badgeCount != null)
-              Text(' · ', style: AppTheme.caption(colors)),
+              Text(' · ', style: _onHeaderCaption(colors, profileColors)),
             // 徽章数拿不到就整段不画，不显示「0枚徽章」
             if (data.badgeCount != null) ...<Widget>[
               Icon(
                 Icons.workspace_premium_outlined,
                 size: 14,
-                color: colors.textSecondary,
+                color: profileColors.onHeaderSecondary,
               ),
               const SizedBox(width: 3),
-              Text('${data.badgeCount}枚徽章', style: AppTheme.caption(colors)),
+              Text(
+                '${data.badgeCount}枚徽章',
+                style: _onHeaderCaption(colors, profileColors),
+              ),
             ],
           ],
         ),
@@ -90,6 +93,10 @@ class ProfileIdentity extends StatelessWidget {
       ],
     );
   }
+
+  /// 头部上的小字：白 80%
+  TextStyle _onHeaderCaption(AppColors colors, ProfileColors profileColors) =>
+      AppTheme.caption(colors).copyWith(color: profileColors.onHeaderSecondary);
 
   Widget _buildAvatar(AppColors colors, ProfileColors profileColors) {
     return Container(
@@ -147,6 +154,7 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppColors colors = AppTheme.colorsOf(context);
+    final ProfileColors profileColors = AppTheme.profileOf(context);
 
     Widget item(String value, String label) {
       return Row(
@@ -160,12 +168,16 @@ class _StatsRow extends StatelessWidget {
               fontSize: 13,
               height: 1.2,
               fontWeight: FontWeight.w400,
-              color: colors.textPrimary,
+              color: profileColors.onHeader,
             ),
           ),
           if (label.isNotEmpty) ...<Widget>[
             const SizedBox(width: 3),
-            Text(label, style: AppTheme.caption(colors)),
+            Text(
+              label,
+              style: AppTheme.caption(colors)
+                  .copyWith(color: profileColors.onHeaderSecondary),
+            ),
           ],
         ],
       );

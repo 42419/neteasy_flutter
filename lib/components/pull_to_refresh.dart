@@ -21,6 +21,7 @@ class PullToRefresh extends StatefulWidget {
     required this.onRefresh,
     required this.builder,
     this.threshold = 90,
+    this.extraTop,
   });
 
   /// 松手后要等的事；它返回的 Future 一完成就收起来
@@ -31,6 +32,11 @@ class PullToRefresh extends StatefulWidget {
 
   /// 拉过这个距离松手就刷新，也是描边长满的位置
   final double threshold;
+
+  /// 想让别处（比如固定在滚动视图后面的头部背景）跟着刷新留白一起动时传进来，
+  /// 值和 `builder` 拿到的 `extraTop` 同步。不传就内部自己管；
+  /// 传了由调用方负责 dispose，生命周期内不要换对象。
+  final ValueNotifier<double>? extraTop;
 
   @override
   State<PullToRefresh> createState() => _PullToRefreshState();
@@ -77,7 +83,8 @@ class _PullToRefreshState extends State<PullToRefresh>
   );
 
   /// 内容顶部的留白（dp）。它和物理回弹互为补偿，差额由 [_targetOffset] 决定
-  final ValueNotifier<double> _pad = ValueNotifier<double>(0);
+  late final ValueNotifier<double> _pad =
+      widget.extraTop ?? ValueNotifier<double>(0);
 
   /// 内容的视觉位移（被顶下去多少 dp），指示器跟它走
   final ValueNotifier<double> _pull = ValueNotifier<double>(0);
@@ -116,7 +123,10 @@ class _PullToRefreshState extends State<PullToRefresh>
   void dispose() {
     _settle.dispose();
     _scrub.dispose();
-    _pad.dispose();
+    // 外面传进来的由外面释放
+    if (widget.extraTop == null) {
+      _pad.dispose();
+    }
     _pull.dispose();
     super.dispose();
   }

@@ -21,6 +21,7 @@ void main() {
   Widget host({
     required Future<void> Function() onRefresh,
     double threshold = 64,
+    ValueNotifier<double>? externalExtraTop,
   }) {
     return MaterialApp(
       theme: AppTheme.light(),
@@ -28,6 +29,7 @@ void main() {
         body: PullToRefresh(
           onRefresh: onRefresh,
           threshold: threshold,
+          extraTop: externalExtraTop,
           builder: (BuildContext context, double extraTop) => CustomScrollView(
             physics: const BouncingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics(),
@@ -208,6 +210,46 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     // 只触发一次，回弹不会再来一遍
     expect(calls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('传入外部 extraTop：悬停时同步留白，刷新完成后归零', (WidgetTester tester) async {
+    final ValueNotifier<double> extraTop = ValueNotifier<double>(0);
+    addTearDown(extraTop.dispose);
+    final Completer<void> done = Completer<void>();
+    await tester.pumpWidget(
+      host(onRefresh: () => done.future, externalExtraTop: extraTop),
+    );
+    await tester.pump();
+
+    final TestGesture gesture = await tester.startGesture(startAt);
+    await gesture.moveBy(const Offset(0, 200));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    // 页面靠它把固定在滚动视图后面的背景一起推下去，悬停时必须有值
+    expect(extraTop.value, greaterThan(0));
+
+    done.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(extraTop.value, closeTo(0, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('外部传入的 extraTop 在 PullToRefresh 销毁后仍可用', (
+    WidgetTester tester,
+  ) async {
+    final ValueNotifier<double> extraTop = ValueNotifier<double>(0);
+    addTearDown(extraTop.dispose);
+    await tester.pumpWidget(
+      host(onRefresh: () async {}, externalExtraTop: extraTop),
+    );
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+    // 谁传进来谁释放：已被 dispose 的 ValueNotifier 再赋值会抛异常
+    extraTop.value = 5;
     expect(tester.takeException(), isNull);
   });
 }
