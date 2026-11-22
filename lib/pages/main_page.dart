@@ -25,6 +25,8 @@ class _MainPageState extends State<MainPage> {
     final AppColors colors = AppTheme.colorsOf(context);
     // 背景交给主题（浅 #F4F7FA / 深 #151515），别再写死浅色
     return Scaffold(
+      // 内容要能滑到迷你播放器下面，底部渐隐才有东西可以淡出
+      extendBody: true,
       body: IndexedStack(
         index: _index,
         children: const <Widget>[
@@ -37,14 +39,20 @@ class _MainPageState extends State<MainPage> {
       // Scaffold 会自动把内容区顶上去，不用各 tab 再留空白
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
-        children: <Widget>[const MiniPlayerBar(), _buildBottomNav(colors)],
+        children: <Widget>[
+          // 渐隐的实色端跟着底栏底色走，两者无缝接上
+          MiniPlayerBar(scrimColor: colors.background),
+          _buildBottomNav(colors),
+        ],
       ),
     );
   }
 
   Widget _buildBottomNav(AppColors colors) {
     return Container(
-      color: colors.card,
+      // 官方底栏没有独立的底色，就是页面底色（截图采样 #F4F7FA），
+      // 所以 tab 区看不到和内容区之间的分界线
+      color: colors.background,
       child: SafeArea(
         top: false,
         child: SizedBox(

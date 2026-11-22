@@ -36,6 +36,8 @@ class DailyRecommendPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.colorsOf(context).background,
+      // 列表要能滑到迷你播放器下面，底部渐隐才有东西可以淡出
+      extendBody: true,
       // 没有底栏的子页面：迷你播放器自己避开手势条
       bottomNavigationBar: const MiniPlayerBar(safeBottom: true),
       body: CustomScrollView(
@@ -51,17 +53,22 @@ class DailyRecommendPage extends StatelessWidget {
             const SliverToBoxAdapter(child: _HintRow()),
             SliverList.builder(
               itemCount: store.songs.length,
-              itemBuilder: (BuildContext context, int index) =>
-                  _SongRow(
-                    song: store.songs[index],
-                    playing: store.songs[index].id == playingId,
-                    onTap: () => context.read<PlayerStore>().playQueue(
-                      store.songs,
-                      index: index,
-                    ),
-                  ),
+              itemBuilder: (BuildContext context, int index) => _SongRow(
+                song: store.songs[index],
+                playing: store.songs[index].id == playingId,
+                onTap: () => context.read<PlayerStore>().playQueue(
+                  store.songs,
+                  index: index,
+                ),
+              ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            // extendBody 下 Scaffold 会把底栏总高写进 MediaQuery 的 padding，
+            // 用它留白，最后一行才不会被迷你播放器压住
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.paddingOf(context).bottom + 16,
+              ),
+            ),
           ],
         ],
       ),

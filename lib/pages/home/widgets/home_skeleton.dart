@@ -91,6 +91,10 @@ class _HomeSkeletonState extends State<HomeSkeleton>
               child: const _CardRow(showRank: true),
             ),
           ),
+          // 和真实列表一样让出底栏高度
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+          ),
         ],
       ),
     );
