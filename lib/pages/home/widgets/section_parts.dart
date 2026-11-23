@@ -109,9 +109,11 @@ class HorizontalList extends StatelessWidget {
 /// 几何实测：页宽 = 屏幕宽 − 32，页内左 16 / 右 8，页与页之间**不留间隙**。
 /// 这样下一页的封面只在屏幕右缘露出约 16dp，三组宽度完全一致。
 ///
-/// 实现：`PageView` + `viewportFraction`（页宽 / 屏宽）+ `padEnds: false`
-/// （第一页贴左边，不居中）。最后一页吸附到左边后，右边会留出一截空白，
-/// 这是 `viewportFraction < 1` 的固有表现。
+/// 为什么不直接用 `PageView`：`viewportFraction < 1` 时 PageView 的滚动范围
+/// 只到「最后一页贴住屏幕右缘」，最后一页没法像前面的页一样吸附到左边，
+/// 只能被推到右边，还会在左边露出上一页的播放键——官方的最后一页是和其他页
+/// 一模一样地贴左、右边留空。所以这里用 `ListView`（定宽条目 + 右侧补一段）
+/// 加自己的吸附物理效果，把最后一页的位置也算进去。
 class RowPages extends StatefulWidget {
   const RowPages({super.key, required this.tiles, required this.rowHeight});
 
@@ -123,36 +125,39 @@ class RowPages extends StatefulWidget {
 }
 
 class _RowPagesState extends State<RowPages> {
-  PageController? _controller;
-  double _fraction = 0;
+  final ScrollController _controller = ScrollController();
 
-  /// `viewportFraction` 是 `PageController` 的构造参数，建好就改不了。
-  /// 宽度变了（折叠屏展开、分屏）要换一个新的，并保留当前页。
-  ///
-  /// 旧的不能立刻 dispose：此刻旧的 PageView 还挂在它上面，等这一帧
-  /// 换完控制器再释放，否则它卸载时会碰到已释放的控制器。
-  PageController _controllerFor(double fraction) {
-    final PageController? current = _controller;
-    if (current != null && (fraction - _fraction).abs() < 0.001) {
-      return current;
+  /// 当前一页的宽度。物理效果在滚动位置建好时就定下来了，之后宽度变化它自己
+  /// 看不到，所以让它每次吸附时回来读这里的最新值。
+  double _pageExtent = 0;
+
+  late final _PageSnapPhysics _physics = _PageSnapPhysics(
+    pageExtent: () => _pageExtent,
+  );
+
+  /// 记下新页宽；宽度变了（折叠屏展开、分屏）就在这一帧布局完后，
+  /// 把滚动偏移换算到新宽度，让它仍停在原来那一页。
+  void _syncPageExtent(double next) {
+    final double previous = _pageExtent;
+    _pageExtent = next;
+    if (previous <= 0 || (previous - next).abs() < 0.5 || !_controller.hasClients) {
+      return;
     }
-    int page = 0;
-    if (current != null) {
-      if (current.hasClients) {
-        page = (current.page ?? 0).round();
+    final double page = (_controller.offset / previous).roundToDouble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_controller.hasClients) {
+        return;
       }
-      WidgetsBinding.instance.addPostFrameCallback((_) => current.dispose());
-    }
-    _fraction = fraction;
-    return _controller = PageController(
-      viewportFraction: fraction,
-      initialPage: page,
-    );
+      final ScrollPosition position = _controller.position;
+      _controller.jumpTo(
+        (page * next).clamp(position.minScrollExtent, position.maxScrollExtent),
+      );
+    });
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -172,12 +177,16 @@ class _RowPagesState extends State<RowPages> {
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final double width = constraints.maxWidth;
-          final PageController controller = _controllerFor(
-            (width - AppTheme.pagePadding * 2) / width,
-          );
-          return PageView.builder(
-            controller: controller,
-            padEnds: false,
+          final double pageWidth = width - AppTheme.pagePadding * 2;
+          _syncPageExtent(pageWidth);
+          return ListView.builder(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            physics: _physics,
+            itemExtent: pageWidth,
+            // 右边补「屏宽 − 页宽」：滚动范围刚好到「最后一页贴住屏幕左边」，
+            // 最后一页就能和前面的页一样吸附到左边，右边留空
+            padding: EdgeInsets.only(right: width - pageWidth),
             itemCount: pages.length,
             itemBuilder: (BuildContext context, int index) => Padding(
               padding: const EdgeInsets.only(
@@ -196,4 +205,72 @@ class _RowPagesState extends State<RowPages> {
       ),
     );
   }
+}
+
+/// 按**固定页宽**整页吸附的滚动物理效果。
+///
+/// 逻辑照搬 Flutter 的 `PageScrollPhysics`（拖过半页或甩一下就翻页，否则回弹），
+/// 区别只在页宽：`PageScrollPhysics` 用视口宽度当页宽，这里用 [pageExtent]
+/// 给的页宽，因为我们的一页比屏幕窄 32dp。
+class _PageSnapPhysics extends ScrollPhysics {
+  const _PageSnapPhysics({required this.pageExtent, super.parent});
+
+  /// 当前页宽。用函数而不是数值：物理效果实例会被滚动位置长期持有，
+  /// 宽度变了得能读到最新的。
+  final double Function() pageExtent;
+
+  @override
+  _PageSnapPhysics applyTo(ScrollPhysics? ancestor) {
+    return _PageSnapPhysics(
+      pageExtent: pageExtent,
+      parent: buildParent(ancestor),
+    );
+  }
+
+  double _targetPixels(
+    ScrollMetrics position,
+    Tolerance tolerance,
+    double velocity,
+    double extent,
+  ) {
+    double page = position.pixels / extent;
+    if (velocity < -tolerance.velocity) {
+      page -= 0.5;
+    } else if (velocity > tolerance.velocity) {
+      page += 0.5;
+    }
+    return (page.roundToDouble() * extent).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    final double extent = pageExtent();
+    // 越界且没在往回走：交给父类的回弹；页宽还没量出来也走父类
+    if (extent <= 0 ||
+        (velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, velocity);
+    }
+    final Tolerance tolerance = toleranceFor(position);
+    final double target = _targetPixels(position, tolerance, velocity, extent);
+    if (target != position.pixels) {
+      return ScrollSpringSimulation(
+        spring,
+        position.pixels,
+        target,
+        velocity,
+        tolerance: tolerance,
+      );
+    }
+    return null;
+  }
+
+  @override
+  bool get allowImplicitScrolling => false;
 }
