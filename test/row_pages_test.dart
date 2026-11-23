@@ -4,11 +4,12 @@ import 'package:neteasy_flutter/pages/home/widgets/section_parts.dart';
 import 'package:neteasy_flutter/theme/app_theme.dart';
 
 void main() {
-  /// 条目靠左铺满整行，和真实的歌曲 / 播客行一样。
-  /// 不能直接放 Text：RowPages 里是 Column，Text 会被水平居中，量出来的左边距就不对了
+  /// 条目铺满整行，和真实的歌曲 / 播客行一样：左边一个 tN，右边一个 rN
+  /// （rN 相当于真实行右端的播放键，用来量一页的右边界）。
+  /// 不能只放 Text：RowPages 里是 Column，Text 会被水平居中，量出来的左边距就不对了
   List<Widget> tiles() => <Widget>[
     for (int i = 0; i < 7; i++)
-      Align(alignment: Alignment.centerLeft, child: Text('t$i')),
+      Row(children: <Widget>[Text('t$i'), const Spacer(), Text('r$i')]),
   ];
 
   /// 7 条（t0~t6）→ 3 页：[t0 t1 t2] [t3 t4 t5] [t6]
@@ -28,6 +29,12 @@ void main() {
 
   double left(WidgetTester tester, String text) =>
       tester.getTopLeft(find.text(text)).dx;
+
+  /// 这个文字有没有（哪怕一部分）露在屏幕里。没建出来的算不在屏幕里。
+  bool onScreen(WidgetTester tester, String text) {
+    final Finder finder = find.text(text);
+    return tester.any(finder) && tester.getRect(finder).right > 0;
+  }
 
   Future<void> flingLeft(WidgetTester tester) async {
     await tester.fling(find.byType(ListView), const Offset(-200, 0), 1500);
@@ -54,16 +61,20 @@ void main() {
     expect(left(tester, 't3'), closeTo(AppTheme.pagePadding, 0.5));
   });
 
-  testWidgets('最后一页和其他页一样贴左，不会被推到右边、也不露出上一页', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('最后一页和其他页一样贴左，不会被推到右边、也不露出上一页', (WidgetTester tester) async {
     await tester.pumpWidget(host(400));
     await flingLeft(tester);
     await flingLeft(tester);
-    // 最后一页（t6）左边距也是 16
+    // 最后一页（t6）左边距也是 16，和前面的页一样
     expect(left(tester, 't6'), closeTo(AppTheme.pagePadding, 0.5));
-    // 上一页（t3）已经整页滑出屏幕左侧，不会在左边露一截
-    expect(left(tester, 't3'), lessThan(0));
+    // 上一页的右端（官方里是播放键）已经整个滑出屏幕左侧，不会在左边露一截。
+    // 之前用 PageView 时它会被推到 x≈24 的位置露出来
+    expect(onScreen(tester, 'r3'), isFalse);
+    // 最后一页的右端离屏幕右缘 40dp：页宽 368 − 页内右边距 8 = 360，400 − 360 = 40
+    expect(
+      tester.getTopRight(find.text('r6')).dx,
+      closeTo(400 - AppTheme.pagePadding * 2 - 8, 0.5),
+    );
 
     // 到头了再甩，位置不动
     await flingLeft(tester);

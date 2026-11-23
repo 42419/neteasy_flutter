@@ -140,7 +140,9 @@ class _RowPagesState extends State<RowPages> {
   void _syncPageExtent(double next) {
     final double previous = _pageExtent;
     _pageExtent = next;
-    if (previous <= 0 || (previous - next).abs() < 0.5 || !_controller.hasClients) {
+    if (previous <= 0 ||
+        (previous - next).abs() < 0.5 ||
+        !_controller.hasClients) {
       return;
     }
     final double page = (_controller.offset / previous).roundToDouble();
