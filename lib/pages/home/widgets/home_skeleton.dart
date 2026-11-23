@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../components/pull_to_refresh.dart';
+import '../../../components/skeleton.dart';
 import '../../../theme/app_theme.dart';
 
 /// 首页骨架屏：还没有任何快照可铺时的首屏占位。
@@ -118,7 +119,7 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: _Shimmer(
+      child: Shimmer(
         animation: animation,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,54 +134,13 @@ class _Section extends StatelessWidget {
                 ),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _Bone(width: 88, height: 22),
+                  child: SkeletonBone(width: 88, height: 22),
                 ),
               ),
             child,
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 扫光：一束半透明白光从左侧扫到右侧，盖在骨架的实色块上
-class _Shimmer extends StatelessWidget {
-  const _Shimmer({required this.animation, required this.child});
-
-  final Animation<double>? animation;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final Animation<double>? animation = this.animation;
-    if (animation == null) {
-      return child;
-    }
-    final Color shine = AppTheme.colorsOf(context).skeletonShine;
-    return AnimatedBuilder(
-      animation: animation,
-      // child 不参与重建，每帧只重算 shader
-      child: child,
-      builder: (BuildContext context, Widget? child) {
-        final double t = animation.value;
-        return ShaderMask(
-          blendMode: BlendMode.srcATop,
-          shaderCallback: (Rect bounds) {
-            return LinearGradient(
-              begin: Alignment(-1.8 + 3.4 * t, 0),
-              end: Alignment(-0.8 + 3.4 * t, 0),
-              colors: <Color>[
-                shine.withValues(alpha: 0),
-                shine,
-                shine.withValues(alpha: 0),
-              ],
-              stops: const <double>[0, 0.5, 1],
-            ).createShader(bounds);
-          },
-          child: child,
-        );
-      },
     );
   }
 }
@@ -220,18 +180,22 @@ class _CardBone extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (showRank) {
-      return const _Bone(width: 150, height: 200, radius: AppTheme.radiusCard);
+      return const SkeletonBone(
+        width: 150,
+        height: 200,
+        radius: AppTheme.radiusCard,
+      );
     }
     return const SizedBox(
       width: 150,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _Bone(width: 150, height: 150, radius: AppTheme.radiusCard),
+          SkeletonBone(width: 150, height: 150, radius: AppTheme.radiusCard),
           SizedBox(height: 10),
-          _Bone(width: 150, height: 14),
+          SkeletonBone(width: 150, height: 14),
           SizedBox(height: 6),
-          _Bone(width: 96, height: 14),
+          SkeletonBone(width: 96, height: 14),
         ],
       ),
     );
@@ -276,40 +240,18 @@ class _SongRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Row(
       children: <Widget>[
-        _Bone(width: 48, height: 48, radius: 6),
+        SkeletonBone(width: 48, height: 48, radius: 6),
         SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _Bone(width: 180, height: 14),
+            SkeletonBone(width: 180, height: 14),
             SizedBox(height: 6),
-            _Bone(width: 110, height: 11),
+            SkeletonBone(width: 110, height: 11),
           ],
         ),
       ],
-    );
-  }
-}
-
-/// 骨架基础块：实色圆角，扫光只改它的亮度
-class _Bone extends StatelessWidget {
-  const _Bone({required this.width, required this.height, this.radius = 4});
-
-  final double width;
-  final double height;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppColors colors = AppTheme.colorsOf(context);
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: colors.placeholder,
-        borderRadius: BorderRadius.circular(radius),
-      ),
     );
   }
 }

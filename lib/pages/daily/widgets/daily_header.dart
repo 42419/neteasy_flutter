@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../stores/daily_store.dart';
 import '../../../stores/player_store.dart';
 import '../../../theme/app_theme.dart';
+import '../../../viewmodels/song.dart';
 import 'daily_action_bar.dart';
 import 'daily_history_pill.dart';
 import 'daily_segment.dart';
@@ -33,6 +34,8 @@ class DailyHeader extends StatelessWidget {
     final DateTime now = DateTime.now();
     final String day = '${now.day}';
     final String month = now.month.toString().padLeft(2, '0');
+    // 跨天后 store 的 songs 会变空：这时「播放全部」不该能点
+    final List<Song> songs = store.songs;
 
     return Container(
       decoration: BoxDecoration(
@@ -105,8 +108,9 @@ class DailyHeader extends StatelessWidget {
             // 播放全部：也在渐变背景内部
             DailyActionBar(
               refreshing: store.refreshing,
-              onPlayAll: () =>
-                  context.read<PlayerStore>().playQueue(store.songs),
+              onPlayAll: songs.isEmpty
+                  ? null
+                  : () => context.read<PlayerStore>().playQueue(songs),
               onRefresh: () => store.load(refresh: true),
             ),
           ],

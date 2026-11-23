@@ -1,10 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../api/ncm_repository.dart';
 import '../../components/error_retry.dart';
 import '../../components/pull_to_refresh.dart';
-import '../../stores/daily_store.dart';
 import '../../stores/home_store.dart';
 import '../../viewmodels/home_block.dart';
 import '../../viewmodels/playlist.dart';
@@ -176,17 +174,16 @@ class HomeView extends StatelessWidget {
   }
 
   /// 入口卡目前只有第一张「每日推荐」有目标页，其余先不响应
+  ///
+  /// DailyStore 挂在全局：首页加载时已经把同一份 `/recommend/songs` 灌进去了，
+  /// 这里直接 push，进页面不用再等一次请求。
   void _openEntry(BuildContext context, int index) {
     if (index != 0) {
       return;
     }
-    final NcmRepository repo = context.read<NcmRepository>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => ChangeNotifierProvider<DailyStore>(
-          create: (BuildContext context) => DailyStore(repo)..load(),
-          child: const DailyRecommendPage(),
-        ),
+        builder: (BuildContext context) => const DailyRecommendPage(),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../api/ncm_repository.dart';
 import '../pages/main_page.dart';
 import '../player/netease_audio_handler.dart';
+import '../stores/daily_store.dart';
 import '../stores/home_store.dart';
 import '../stores/player_store.dart';
 import '../stores/profile_store.dart';
@@ -32,12 +33,16 @@ Widget getRootWidget({
   final ApiClient api = ApiClient(cookieStore: CookieStore(prefs));
   final NcmRepository repo = NcmRepository(api);
   final SessionStore session = SessionStore(repo, api);
+  // 每日推荐页的数据挂在全局：首页加载时会用同一份响应预热它，
+  // 进页面就不用再等一次 `/recommend/songs`
+  final DailyStore daily = DailyStore(repo);
   final HomeStore home = HomeStore(
     repo,
     uidProvider: () => session.uid,
     nicknameProvider: () => session.profile?.nickname,
     snapshotStore: HomeSnapshotStore(),
     loggedInProvider: () => api.loggedIn,
+    dailyFeed: daily,
   );
   final ProfileStore profile = ProfileStore(
     repo,
@@ -59,8 +64,10 @@ Widget getRootWidget({
       );
   });
 
-  // 登录/登出后首页和「我的」页都要重拉：两者的数据都依赖登录态
+  // 登录/登出后首页和「我的」页都要重拉：两者的数据都依赖登录态。
+  // 每日推荐是按账号生成的，登出必须清掉，不能留给下一个账号。
   session.onLoginChanged = () {
+    daily.clear();
     home.load();
     profile.load();
   };
@@ -78,6 +85,7 @@ Widget getRootWidget({
       Provider<NcmRepository>.value(value: repo),
       ChangeNotifierProvider<SessionStore>.value(value: session),
       ChangeNotifierProvider<HomeStore>.value(value: home),
+      ChangeNotifierProvider<DailyStore>.value(value: daily),
       ChangeNotifierProvider<ProfileStore>.value(value: profile),
       ChangeNotifierProvider<PlayerStore>.value(value: player),
     ],

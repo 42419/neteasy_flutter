@@ -18,7 +18,8 @@ class DailyActionBar extends StatelessWidget {
   /// 「换一批」进行中：按钮里换成转圈，且不可再点
   final bool refreshing;
 
-  final VoidCallback onPlayAll;
+  /// 列表还没有内容时传 null：骨架期间「播放全部」不该能点
+  final VoidCallback? onPlayAll;
   final VoidCallback onRefresh;
 
   @override

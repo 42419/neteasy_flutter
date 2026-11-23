@@ -11,6 +11,7 @@ import '../viewmodels/home_snapshot.dart';
 import '../viewmodels/playlist.dart';
 import '../viewmodels/rank.dart';
 import '../viewmodels/song.dart';
+import 'daily_store.dart';
 
 /// 首页状态。
 ///
@@ -23,9 +24,17 @@ class HomeStore extends ChangeNotifier {
     this.nicknameProvider,
     this._snapshotStore,
     this._loggedInProvider,
+    this._dailyFeed,
   });
 
   final NcmRepository _repo;
+
+  /// 每日推荐的数据源。
+  ///
+  /// 首页只需要第一首的封面，但那份列表每日推荐页也要用，所以统一交给
+  /// [DailyStore] 去取：首页和页面共用同一个 in-flight 请求，
+  /// 冷启动后立刻点进每日推荐不会重复打接口。测试里可以传 null。
+  final DailyStore? _dailyFeed;
 
   /// 上次成功加载的快照；null 表示不落盘（测试里就是这么用的）
   final HomeSnapshotStore? _snapshotStore;
@@ -148,16 +157,17 @@ class HomeStore extends ChangeNotifier {
             const Ok<List<Playlist>>(<Playlist>[]),
           )
         : _repo.userPlaylists(uid);
-    // 首张入口卡（每日推荐）的背景就是今天第一首推荐的专辑封面
-    final Future<Result<List<Song>>> dailyFuture = uid == null
-        ? Future<Result<List<Song>>>.value(const Ok<List<Song>>(<Song>[]))
-        : _repo.dailySongs();
+    // 首张入口卡（每日推荐）的背景就是今天第一首推荐的专辑封面。
+    // 这里不自己请求：交给 DailyStore，每日推荐页用的是同一个请求。
+    final Future<void> dailyFuture = uid == null || _dailyFeed == null
+        ? Future<void>.value()
+        : _dailyFeed.ensureLoaded();
 
     final Result<List<HomeBlock>> blocks = await blocksFuture;
     final Result<List<HomeEntry>> entries = await entriesFuture;
     final List<Rank> ranks = await ranksFuture;
     final Result<List<Playlist>> mine = await mineFuture;
-    final Result<List<Song>> daily = await dailyFuture;
+    await dailyFuture;
     if (generation != _generation) {
       return;
     }
@@ -185,8 +195,12 @@ class HomeStore extends ChangeNotifier {
     if (mine is Ok<List<Playlist>>) {
       _myPlaylists = mine.value;
     }
-    if (daily is Ok<List<Song>> && daily.value.isNotEmpty) {
-      _dailyCover = daily.value.first.coverUrl;
+    // 封面取 DailyStore 那批数据的第一首；它没拿到就保留旧封面
+    final List<Song> dailySongs = uid == null
+        ? const <Song>[]
+        : (_dailyFeed?.songs ?? const <Song>[]);
+    if (dailySongs.isNotEmpty) {
+      _dailyCover = dailySongs.first.coverUrl;
     }
 
     final bool hasAny = _blocks.isNotEmpty || _ranks.isNotEmpty;
