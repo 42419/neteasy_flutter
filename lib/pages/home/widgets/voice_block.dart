@@ -108,14 +108,17 @@ class VoiceTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
+        // 与歌曲行同一套：26dp 画布右侧自带 7.5dp 空白，绘制右移 3dp 让墨迹贴边
         SizedBox(
           height: 80,
-          child: Align(
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 26,
-              color: colors.iconPlay,
+          child: Center(
+            child: Transform.translate(
+              offset: const Offset(3, 0),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                size: 26,
+                color: colors.iconPlay,
+              ),
             ),
           ),
         ),

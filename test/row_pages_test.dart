@@ -70,10 +70,10 @@ void main() {
     // 上一页的右端（官方里是播放键）已经整个滑出屏幕左侧，不会在左边露一截。
     // 之前用 PageView 时它会被推到 x≈24 的位置露出来
     expect(onScreen(tester, 'r3'), isFalse);
-    // 最后一页的右端离屏幕右缘 40dp：页宽 368 − 页内右边距 8 = 360，400 − 360 = 40
+    // 最后一页的右端离屏幕右缘 32dp：页内右边距为 0，页宽 368，400 − 368 = 32
     expect(
       tester.getTopRight(find.text('r6')).dx,
-      closeTo(400 - AppTheme.pagePadding * 2 - 8, 0.5),
+      closeTo(400 - AppTheme.pagePadding * 2, 0.5),
     );
 
     // 到头了再甩，位置不动

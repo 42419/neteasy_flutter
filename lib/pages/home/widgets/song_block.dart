@@ -64,7 +64,16 @@ class SongTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        Icon(Icons.play_arrow_rounded, size: 26, color: colors.iconPlay),
+        // 26dp 的画布里墨迹只占约 11dp、右侧自带 7.5dp 空白，官方三角更贴边。
+        // 画布右移 3dp（只动绘制不动布局），墨迹右缘就落到离页边约 4.5dp
+        Transform.translate(
+          offset: const Offset(3, 0),
+          child: Icon(
+            Icons.play_arrow_rounded,
+            size: 26,
+            color: colors.iconPlay,
+          ),
+        ),
       ],
     );
   }

@@ -191,10 +191,9 @@ class _RowPagesState extends State<RowPages> {
             padding: EdgeInsets.only(right: width - pageWidth),
             itemCount: pages.length,
             itemBuilder: (BuildContext context, int index) => Padding(
-              padding: const EdgeInsets.only(
-                left: AppTheme.pagePadding,
-                right: 8,
-              ),
+              // 右边距归零：官方行内容一直排到页宽边缘，右侧播放三角的墨迹
+              // 右缘离页边约 4.5dp。留 8dp 会整体左移，三角看起来偏内
+              padding: const EdgeInsets.only(left: AppTheme.pagePadding),
               child: Column(
                 children: <Widget>[
                   for (final Widget tile in pages[index])
