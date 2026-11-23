@@ -118,11 +118,13 @@ class NcmRepository {
 
   /// 每日推荐歌曲（`/recommend/songs`，需要登录）。
   ///
-  /// [refresh] 对应页面上的「换一批」：后端缓存 2 分钟，带时间戳才能拿到新的一批。
+  /// [refresh] 对应页面上的「换一批」。**刷新靠 `afresh=true`，不是时间戳**：
+  /// 每日推荐一天一批，光带 `timestamp` 只能绕过后端 2 分钟缓存，
+  /// 上游照旧返回同一批，看起来就像按钮没反应。
   Future<Result<List<Song>>> dailySongs({bool refresh = false}) async {
     final Result<Map<String, dynamic>> result = await _api.get(
       '/recommend/songs',
-      refresh ? <String, String>{'timestamp': _stamp} : null,
+      refresh ? <String, String>{'afresh': 'true', 'timestamp': _stamp} : null,
     );
     return switch (result) {
       Ok(:final Map<String, dynamic> value) => Ok(
