@@ -1,8 +1,8 @@
 name: build-debug
 
 on:
-  push:
-    branches: [main]
+  # 只手动触发：这是装机用的 debug APK，不是每次提交都要出的产物，
+  # 跟着 push 跑太频繁。需要包时在 Actions 页面点 Run workflow。
   workflow_dispatch:
 
 concurrency:
@@ -23,12 +23,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.50.0"
+          flutter-version: "3.50.1"
           channel: stable
           cache: true
 
       # 内嵌 Rust 后端（neteasy-backend）不入库，构建前下载并校验 SHA-256。
-      # 升级后端：改 gradle.properties 的 neteasy.backendVersion 时，这里两处一起改。
       - name: 下载内嵌 Rust 后端（三 ABI）
         run: |
           set -euo pipefail
