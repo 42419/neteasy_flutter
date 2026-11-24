@@ -46,6 +46,8 @@ dependencies:
   # 播放：just_audio 负责解码出声，audio_service 负责后台服务、通知栏与锁屏控制
   just_audio: ^0.10.6
   audio_service: ^0.18.19
+  # 登录态 cookie（MUSIC_U）等价于账号凭据，存加密存储：Android 走 Keystore + AES-GCM
+  flutter_secure_storage: ^11.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,6 +58,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # cookie_store_test 用它包里自带的内存实现顶掉真实 Keystore
+  flutter_secure_storage_platform_interface: ^2.1.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

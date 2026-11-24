@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/ncm_repository.dart';
@@ -26,11 +25,15 @@ final GlobalKey<ScaffoldMessengerState> _messengerKey =
 /// 启动顺序有讲究：先 `session.restore()` 恢复登录态，再 `home.load()` 拉首页。
 /// 反过来的话首次 load 读到的 uid 还是 null，「我的歌单」会漏掉一次。
 Widget getRootWidget({
-  required SharedPreferences prefs,
+  required CookieStore cookieStore,
+  required Map<String, String> cookies,
   required NeteaseAudioHandler audioHandler,
   HomeSnapshot? cached,
 }) {
-  final ApiClient api = ApiClient(cookieStore: CookieStore(prefs));
+  final ApiClient api = ApiClient(
+    cookieStore: cookieStore,
+    initialCookies: cookies,
+  );
   final NcmRepository repo = NcmRepository(api);
   final SessionStore session = SessionStore(repo, api);
   // 每日推荐页的数据挂在全局：首页加载时会用同一份响应预热它，

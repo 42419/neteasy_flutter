@@ -105,4 +105,27 @@ void main() {
       '参数错误（HTTP 400）',
     );
   });
+
+  test('启动时读到的 cookie 首个请求就带上（登录态冷启动）', () async {
+    final _FakeAdapter adapter = _FakeAdapter(
+      (RequestOptions options) async => ResponseBody.fromString(
+        jsonEncode(<String, dynamic>{'ok': true}),
+        200,
+      ),
+    );
+
+    final ApiClient api = ApiClient(
+      dio: Dio(
+        BaseOptions(
+          baseUrl: AppConstants.backendBaseUrl,
+          validateStatus: (int? status) => status != null,
+        ),
+      )..httpClientAdapter = adapter,
+      initialCookies: <String, String>{'MUSIC_U': 'saved42'},
+    );
+
+    expect(api.loggedIn, isTrue);
+    await api.get('/homepage/block/page');
+    expect(adapter.requests.first.headers['cookie'], 'MUSIC_U=saved42');
+  });
 }

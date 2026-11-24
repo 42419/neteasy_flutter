@@ -15,24 +15,28 @@ import '../utils/result.dart';
 ///   比端口绑定更早，此时是 connection refused 而不是超时。放宽成「任何错误都重试」
 ///   会吞掉真正的 HTTP 错误，还可能重复提交。
 /// - 错误信息优先用后端的 `neteasyHint`（例如触发风控），其次 `msg`，最后才是状态码
+///
+/// 本地 cookie 由调用方在启动时读好（[CookieStore.load] 要解 Keystore，
+/// 没法在同步构造器里完成），通过 `initialCookies` 传进来。
 class ApiClient {
-  ApiClient({Dio? dio, CookieStore? cookieStore})
-    : _cookieStorage = cookieStore,
-      _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: AppConstants.backendBaseUrl,
-              connectTimeout: const Duration(seconds: 5),
-              receiveTimeout: const Duration(seconds: 15),
-              // 状态码由后端决定，不让 Dio 自己抛
-              validateStatus: (int? status) => status != null,
-            ),
-          ) {
-    final Map<String, String> saved =
-        _cookieStorage?.load() ?? <String, String>{};
-    if (saved.isNotEmpty) {
-      _cookies.addAll(saved);
+  ApiClient({
+    Dio? dio,
+    CookieStore? cookieStore,
+    Map<String, String> initialCookies = const <String, String>{},
+  }) : _cookieStorage = cookieStore,
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: AppConstants.backendBaseUrl,
+               connectTimeout: const Duration(seconds: 5),
+               receiveTimeout: const Duration(seconds: 15),
+               // 状态码由后端决定，不让 Dio 自己抛
+               validateStatus: (int? status) => status != null,
+             ),
+           ) {
+    if (initialCookies.isNotEmpty) {
+      _cookies.addAll(initialCookies);
       _applyCookieHeader();
     }
   }
