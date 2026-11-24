@@ -42,6 +42,7 @@ class _DailyRecommendPageState extends State<DailyRecommendPage> {
   @override
   Widget build(BuildContext context) {
     final DailyStore store = context.watch<DailyStore>();
+    final DailyColors dailyColors = AppTheme.dailyOf(context);
     // songs 已按「推荐日」过滤：跨天后这里为空，页面画骨架等新的
     final List<Song> songs = store.songs;
     final bool failed = store.error != null && songs.isEmpty;
@@ -51,14 +52,32 @@ class _DailyRecommendPageState extends State<DailyRecommendPage> {
     );
 
     return Scaffold(
-      backgroundColor: AppTheme.colorsOf(context).background,
+      // 官方这一页是纯白底，和首页的 #F4F7FA 不同；渐变也按这个底色收尾
+      backgroundColor: dailyColors.pageBackground,
       // 列表要能滑到迷你播放器下面，底部渐隐才有东西可以淡出
       extendBody: true,
-      // 没有底栏的子页面：迷你播放器自己避开手势条
-      bottomNavigationBar: const MiniPlayerBar(safeBottom: true),
+      // 没有底栏的子页面：迷你播放器自己避开手势条。
+      // 底部渐隐要落到这一页的白底上，不能沿用主题里的 #F4F7FA，否则会切出灰带
+      bottomNavigationBar: MiniPlayerBar(
+        safeBottom: true,
+        scrimColor: dailyColors.pageBackground,
+      ),
       body: CustomScrollView(
         slivers: <Widget>[
-          SliverToBoxAdapter(child: DailyHeader(store: store)),
+          // 头部吸顶：收起后只留橙色的状态栏 + 顶栏 + 「播放全部」那一行，
+          // 日期块跟着上移淡出；列表从它下面滚过
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: DailyHeaderDelegate(
+              statusBarHeight: MediaQuery.paddingOf(context).top,
+              date: DateTime.now(),
+              refreshing: store.refreshing,
+              onPlayAll: songs.isEmpty
+                  ? null
+                  : () => context.read<PlayerStore>().playQueue(songs),
+              onRefresh: () => store.load(refresh: true),
+            ),
+          ),
           if (failed)
             SliverFillRemaining(
               hasScrollBody: false,

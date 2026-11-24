@@ -5,8 +5,9 @@ import '../../../theme/app_theme.dart';
 
 /// 播放全部 / 换一批 / 多选。
 ///
-/// 这一行压在暖橙渐变的下缘，所以「播放全部」用主文字色（深色下是白），
-/// 「换一批」的描边和文字跟着渐变走浅深两套。
+/// 画在吸顶头部的底边上（见 [DailyHeaderDelegate]）：头部收起后这一行仍然钉在
+/// 顶栏下面，歌曲列表从它下面滚过——官方录屏里就是这样，别把它挪进列表。
+/// 底边 52 = 8 + 40 + 4，改 padding 要同步 `actionBarHeight`。
 class DailyActionBar extends StatelessWidget {
   const DailyActionBar({
     super.key,

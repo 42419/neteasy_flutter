@@ -155,6 +155,7 @@ class AppColors {
 @immutable
 class DailyColors {
   const DailyColors({
+    required this.pageBackground,
     required this.headerGradient,
     required this.headerGradientStops,
     required this.segmentTrack,
@@ -169,22 +170,28 @@ class DailyColors {
     required this.fortuneText,
   });
 
+  /// 这一页的底色。官方每日推荐是纯白（浅色），和首页的 `#F4F7FA` 不一样：
+  /// 渐变最后一段要落到它上面才不会有硬边，播放栏底下也靠它盖住橙色。
+  final Color pageBackground;
+
   /// 顶部渐变，从上到下 6 段；最后一段必须等于页面背景，否则会切出一条边
   final List<Color> headerGradient;
 
   /// 渐变的落点。暖色区延长到「播放全部」那一行，渐变才不会在按钮上方断掉
   final List<double> headerGradientStops;
 
-  /// 顶栏胶囊底（默认推荐 / 风格推荐）
+  /// 顶栏胶囊底（默认推荐 / 风格推荐）：压在渐变上的一层薄黑，
+  /// 比头部略暗一档（真机量得约 14% 黑），不是白色
   final Color segmentTrack;
 
-  /// 选中半区的滑块
+  /// 选中半区的滑块：78% 白，透出一点底色，不是纯白
   final Color segmentThumb;
 
   /// 选中半区的文字（深棕，压在浅色滑块上）
   final Color segmentSelectedText;
 
-  /// 历史日推胶囊的底
+  /// 历史日推胶囊的底：和分段控件一样是压在渐变上的一层薄黑（真机约 8%），
+  /// 比头部暗一点点；写成白色会让它比周围亮，一眼就不对
   final Color historyTrack;
 
   /// 「换一批」的描边
@@ -206,19 +213,20 @@ class DailyColors {
   final Color fortuneText;
 
   static const DailyColors light = DailyColors(
+    pageBackground: Color(0xFFFFFFFF),
     headerGradient: <Color>[
       Color(0xFFFFB687),
       Color(0xFFFFAB84),
       Color(0xFFFDAB8E),
       Color(0xFFF6C2AF),
       Color(0xFFF9EAE5),
-      Color(0xFFF4F7FA),
+      Color(0xFFFFFFFF),
     ],
     headerGradientStops: <double>[0, 0.40, 0.65, 0.80, 0.92, 1],
-    segmentTrack: Color(0x38FFFFFF),
-    segmentThumb: Color(0xFFFFFFFF),
+    segmentTrack: Color(0x24000000),
+    segmentThumb: Color(0xC7FFFFFF),
     segmentSelectedText: Color(0xFF3D2A22),
-    historyTrack: Color(0x33FFFFFF),
+    historyTrack: Color(0x14000000),
     actionBorder: Color(0x24333333),
     actionText: Color(0xFF333333),
     reasonChipColor: Color(0xFFFF3A3A),
@@ -228,6 +236,7 @@ class DailyColors {
   );
 
   static const DailyColors dark = DailyColors(
+    pageBackground: Color(0xFF151515),
     headerGradient: <Color>[
       Color(0xFFF0A176),
       Color(0xFFD9825B),
@@ -237,10 +246,10 @@ class DailyColors {
       Color(0xFF151515),
     ],
     headerGradientStops: <double>[0, 0.40, 0.65, 0.80, 0.92, 1],
-    segmentTrack: Color(0x2EFFFFFF),
-    segmentThumb: Color(0xFFE8DDD6),
+    segmentTrack: Color(0x24000000),
+    segmentThumb: Color(0xCCE8DDD6),
     segmentSelectedText: Color(0xFF3D2A22),
-    historyTrack: Color(0x29FFFFFF),
+    historyTrack: Color(0x14FFFFFF),
     actionBorder: Color(0x47FFFFFF),
     actionText: Color(0xE6FFFFFF),
     reasonChipColor: Color(0xFFFF3A3A),
