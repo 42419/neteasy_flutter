@@ -85,18 +85,10 @@ class ProfileBlurBackdrop extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: <Color>[
-                          Colors.black.withValues(
-                            alpha: profileColors.blurScrimTopAlpha,
-                          ),
-                          Colors.black.withValues(
-                            alpha: profileColors.blurScrimTopAlpha,
-                          ),
-                          Colors.black.withValues(
-                            alpha: profileColors.blurScrimBottomAlpha,
-                          ),
-                          Colors.black.withValues(
-                            alpha: profileColors.blurScrimBottomAlpha,
-                          ),
+                          profileColors.blurScrimTop,
+                          profileColors.blurScrimTop,
+                          profileColors.blurScrimBottom,
+                          profileColors.blurScrimBottom,
                         ],
                         stops: const <double>[0, holdStop, fadeEndStop, 1],
                       ),

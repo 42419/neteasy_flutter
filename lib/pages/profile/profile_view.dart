@@ -59,12 +59,12 @@ class _ProfileViewState extends State<ProfileView> {
   /// 只设状态栏，导航栏不动——所以不用 `SystemUiOverlayStyle.light/dark`，
   /// 它们会把导航栏也一并改成黑 / 白。
   static const SystemUiOverlayStyle _lightStatusBar = SystemUiOverlayStyle(
-    statusBarColor: Color(0x00000000),
+    statusBarColor: AppTheme.transparent,
     statusBarIconBrightness: Brightness.light,
     statusBarBrightness: Brightness.dark,
   );
   static const SystemUiOverlayStyle _darkStatusBar = SystemUiOverlayStyle(
-    statusBarColor: Color(0x00000000),
+    statusBarColor: AppTheme.transparent,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
   );

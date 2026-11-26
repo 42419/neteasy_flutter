@@ -78,7 +78,7 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: AppTheme.transparent,
         title: const Text('扫码登录'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

@@ -90,7 +90,7 @@ class _TabItem extends StatelessWidget {
             width: 20,
             height: 3,
             decoration: BoxDecoration(
-              color: selected ? AppTheme.brand : Colors.transparent,
+              color: selected ? AppTheme.brand : AppTheme.transparent,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

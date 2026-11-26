@@ -129,7 +129,10 @@ class EntryCard extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: <Color>[Colors.transparent, paletteColors.mediaScrim],
+                  colors: <Color>[
+                    AppTheme.transparent,
+                    paletteColors.mediaScrim,
+                  ],
                   stops: const <double>[0.45, 1],
                 ),
               ),

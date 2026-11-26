@@ -278,8 +278,8 @@ class ProfileColors {
     required this.avatarRing,
     required this.avatarGlow,
     required this.headerFallback,
-    required this.blurScrimTopAlpha,
-    required this.blurScrimBottomAlpha,
+    required this.blurScrimTop,
+    required this.blurScrimBottom,
   });
 
   /// SVIP 昵称的金色（普通用户和 VIP 用 [onHeader]）
@@ -308,11 +308,11 @@ class ProfileColors {
   /// 没有头像时头部的底色：取官方这张头像模糊后的平均色，保证白字有对比度
   final Color headerFallback;
 
-  /// 黑色遮罩的两端透明度：头部上半段保持 [blurScrimTopAlpha]，
-  /// 往下渐隐到 [blurScrimBottomAlpha]。官方实测上端约 0.25、下端为 0；
-  /// 下端留一点点（0.06），免得浅色头像模糊出来的底太亮、白字糊掉。
-  final double blurScrimTopAlpha;
-  final double blurScrimBottomAlpha;
+  /// 头部黑色遮罩的两端：上半段保持 [blurScrimTop]，往下渐隐到 [blurScrimBottom]。
+  /// 官方实测上端约 25% 黑、下端为 0；下端留一点点（6%），
+  /// 免得浅色头像模糊出来的底太亮、白字糊掉。深色下页面底更黑，遮罩加重到 32% / 12%。
+  final Color blurScrimTop;
+  final Color blurScrimBottom;
 
   static const ProfileColors light = ProfileColors(
     svipName: Color(0xFFFEE7B9),
@@ -326,8 +326,8 @@ class ProfileColors {
     avatarRing: Color(0xFFFFFFFF),
     avatarGlow: Color(0x24FFFFFF),
     headerFallback: Color(0xFF7B6B65),
-    blurScrimTopAlpha: 0.25,
-    blurScrimBottomAlpha: 0.06,
+    blurScrimTop: Color(0x40000000),
+    blurScrimBottom: Color(0x0F000000),
   );
 
   /// 深色下页面底是黑的，头部遮罩略重一点，和下面的面板拉开层次
@@ -343,8 +343,8 @@ class ProfileColors {
     avatarRing: Color(0xFFFFFFFF),
     avatarGlow: Color(0x24FFFFFF),
     headerFallback: Color(0xFF5A4F4B),
-    blurScrimTopAlpha: 0.32,
-    blurScrimBottomAlpha: 0.12,
+    blurScrimTop: Color(0x52000000),
+    blurScrimBottom: Color(0x1F000000),
   );
 }
 
@@ -360,6 +360,10 @@ class AppTheme {
 
   /// 行内 VIP 标签的红：比品牌红更偏玫，官方「每日推荐」「歌单行」用的都是它
   static const Color vipTag = Color(0xFFFF4B4B);
+
+  /// 透明。给 `SystemUiOverlayStyle`、渐变端点这类 const 场景用：
+  /// 页面里不许写 `Colors.transparent` / `Color(0x…)`，统一从这里取。
+  static const Color transparent = Color(0x00000000);
 
   /// 当前主题的语义色。页面在 build 里取一次，往下传
   static AppColors colorsOf(BuildContext context) =>
