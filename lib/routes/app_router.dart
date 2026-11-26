@@ -84,8 +84,6 @@ Widget getRootWidget({
 
   return MultiProvider(
     providers: [
-      // 页面要自己拉数据时（如每日推荐）直接从 Provider 取仓库
-      Provider<NcmRepository>.value(value: repo),
       ChangeNotifierProvider<SessionStore>.value(value: session),
       ChangeNotifierProvider<HomeStore>.value(value: home),
       ChangeNotifierProvider<DailyStore>.value(value: daily),

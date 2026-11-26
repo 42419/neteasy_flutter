@@ -70,20 +70,6 @@ class NcmRepository {
     };
   }
 
-  /// 推荐歌单（`/personalized`）
-  Future<Result<List<Playlist>>> recommendPlaylists({int limit = 6}) async {
-    final Result<Map<String, dynamic>> result = await _api.get(
-      '/personalized',
-      <String, String>{'limit': '$limit'},
-    );
-    return switch (result) {
-      Ok(:final Map<String, dynamic> value) => Ok(
-        mapList<Playlist>(value['result'], toPlaylist),
-      ),
-      Err(:final AppError error) => Err<List<Playlist>>(error),
-    };
-  }
-
   /// 排行榜（`/toplist`）。字段在不同版本里叫 `list` 或 `data`，都试一下。
   Future<Result<List<Rank>>> toplists({int limit = 10}) async {
     final Result<Map<String, dynamic>> result = await _api.get('/toplist');
@@ -177,21 +163,10 @@ class NcmRepository {
     };
   }
 
-  /// 当前登录用户（`/login/status`）；未登录返回 `Ok(null)`。
-  ///
-  /// 只用来判断「有没有登录」。**不要拿它的 uid 查用户数据**：登录后这里返回的
-  /// 仍是设备游客 id，用它请求 `/user/detail/new` 会 404。真实 uid 走 [accountProfile]。
-  Future<Result<UserProfile?>> loginProfile() async {
-    final Result<Map<String, dynamic>> result = await _api.get('/login/status');
-    return switch (result) {
-      Ok(:final Map<String, dynamic> value) => Ok(toLoginProfile(value)),
-      Err(:final AppError error) => Err<UserProfile?>(error),
-    };
-  }
-
   /// 当前登录账号（`/user/account`）；游客返回 `Ok(null)`。
   ///
   /// 这里的 `account.id` 是真实 uid，用户详情、歌单列表都要用它。
+  /// `/login/status` 不能用：登录后它返回的仍是设备游客 id，拿去查详情会 404。
   Future<Result<UserProfile?>> accountProfile() async {
     final Result<Map<String, dynamic>> result = await _api.get('/user/account');
     return switch (result) {
