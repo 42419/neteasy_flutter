@@ -22,6 +22,7 @@ void main() {
     required Future<void> Function() onRefresh,
     double threshold = 64,
     ValueNotifier<double>? externalExtraTop,
+    Color? indicatorColor,
   }) {
     return MaterialApp(
       theme: AppTheme.light(),
@@ -30,6 +31,7 @@ void main() {
           onRefresh: onRefresh,
           threshold: threshold,
           extraTop: externalExtraTop,
+          indicatorColor: indicatorColor,
           builder: (BuildContext context, double extraTop) => CustomScrollView(
             physics: const BouncingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics(),
@@ -235,6 +237,36 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     expect(extraTop.value, closeTo(0, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('可指定指示器颜色：压在深色头部上用白色', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      host(onRefresh: () async {}, indicatorColor: const Color(0xFFFFFFFF)),
+    );
+    await tester.pump();
+
+    final TestGesture gesture = await tester.startGesture(startAt);
+    await gesture.moveBy(const Offset(0, 80));
+    await tester.pump();
+    expect(find.byType(Lottie), findsOneWidget);
+
+    // 音符素材本身是纯黑描边，颜色全靠 ColorFilter 整体替换：
+    // 这里错了，压在深色头部上的指示器就等于隐形
+    final ColorFiltered filtered = tester.widget<ColorFiltered>(
+      find.ancestor(
+        of: find.byType(Lottie),
+        matching: find.byType(ColorFiltered),
+      ),
+    );
+    expect(
+      filtered.colorFilter,
+      const ColorFilter.mode(Color(0xFFFFFFFF), BlendMode.srcIn),
+    );
+
+    await gesture.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
     expect(tester.takeException(), isNull);
   });
 

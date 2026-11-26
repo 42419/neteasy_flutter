@@ -22,6 +22,7 @@ class PullToRefresh extends StatefulWidget {
     required this.builder,
     this.threshold = 90,
     this.extraTop,
+    this.indicatorColor,
   });
 
   /// 松手后要等的事；它返回的 Future 一完成就收起来
@@ -37,6 +38,12 @@ class PullToRefresh extends StatefulWidget {
   /// 值和 `builder` 拿到的 `extraTop` 同步。不传就内部自己管；
   /// 传了由调用方负责 dispose，生命周期内不要换对象。
   final ValueNotifier<double>? extraTop;
+
+  /// 音符描边和圆底的颜色。不传就跟随正文色：浅色主题近黑、深色主题近白。
+  ///
+  /// 页面底色不是白 / 近黑时要传死值。「我的」页的指示器压在头像模糊出来的
+  /// 深色头部上，浅色主题那圈近黑描边在里面几乎看不见，所以那里固定用白色。
+  final Color? indicatorColor;
 
   @override
   State<PullToRefresh> createState() => _PullToRefreshState();
@@ -282,20 +289,21 @@ class _PullToRefreshState extends State<PullToRefresh>
     );
   }
 
-  /// 浅灰圆底 + 中间的网易云音符
+  /// 浅色圆底 + 中间的网易云音符
   Widget _buildIndicator(AppColors colors) {
+    final Color tint = widget.indicatorColor ?? colors.textPrimary;
     return SizedBox(
       width: _size,
       height: _size,
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: colors.textPrimary.withValues(alpha: 0.06),
+          color: tint.withValues(alpha: 0.06),
         ),
         child: ClipOval(
           child: ColorFiltered(
             // 动画里只有一条纯黑描边，深色底必须整体换色，否则等于隐形
-            colorFilter: ColorFilter.mode(colors.textPrimary, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
             child: Lottie.asset(
               'assets/anim/netease_loading.json',
               controller: _scrub,

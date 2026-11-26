@@ -175,6 +175,9 @@ class _ProfileViewState extends State<ProfileView> {
                 child: PullToRefresh(
                   onRefresh: store.load,
                   extraTop: _extraTop,
+                  // 指示器压在头像模糊出来的深色头部上：浅色主题那圈近黑描边
+                  // 在里面几乎看不见，固定用头部的白字色
+                  indicatorColor: profileColors.onHeader,
                   builder: (BuildContext context, double extraTop) =>
                       _buildScrollView(
                         context,
