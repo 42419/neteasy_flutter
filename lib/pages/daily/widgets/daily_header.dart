@@ -80,18 +80,26 @@ class DailyHeaderDelegate extends SliverPersistentHeaderDelegate {
   /// 整条渐变的映射跟着换一套，起手那一下会突然跳色。
   static const double _solidStopLimit = 0.80;
 
-  /// 实色区用到的颜色：调色板里到 [_solidStopLimit] 为止，末段按 [remain] 插值
+  /// 实色区用到的颜色：调色板里到 [_solidStopLimit] 为止。
+  ///
+  /// 收起时（[remain] → 0）**每一段都向首色收敛**：深色模式的调色板后面几段
+  /// 压到暗棕（`#8A5647`、`#4A3230`），吸顶后实色区只剩九十来 dp，这些暗色
+  /// 堆在播放栏上方，看着像黑色从底下泛上来。收敛掉之后吸顶就是一片橙，
+  /// 和浅色模式一样干净；展开时（[remain] = 1）颜色保持原样，暗色段继续
+  /// 负责化进页面底色。
+  ///
+  /// 用「整条一起移动」而不是「只插值末段」，也是为了让收起过程中每一段
+  /// 都连续变化——换色标数量会让整条映射换一套，起手那一下会跳色。
   List<Color> _solidColors(DailyColors daily, double remain) {
     final int count = daily.headerGradientStops
         .where((double stop) => stop <= _solidStopLimit + 1e-6)
         .length
         .clamp(2, daily.headerGradient.length);
     final List<Color> colors = daily.headerGradient.sublist(0, count);
-    colors[count - 1] = Color.lerp(
-      colors[count - 2],
-      colors[count - 1],
-      remain,
-    )!;
+    final Color top = colors.first;
+    for (int i = 1; i < count; i++) {
+      colors[i] = Color.lerp(top, colors[i], remain)!;
+    }
     return colors;
   }
 
