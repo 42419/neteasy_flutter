@@ -156,19 +156,28 @@ class _StatsRow extends StatelessWidget {
     final AppColors colors = AppTheme.colorsOf(context);
     final ProfileColors profileColors = AppTheme.profileOf(context);
 
-    Widget item(String value, String label) {
+    /// 一项统计。[prefix] 是数字前面的固定文字（如 `Lv.`）：
+    /// 它和数字分开画——Dolphin 只有数字字形，字母会掉回系统字体，
+    /// 一整串塞进 Dolphin 反而一行两种字形
+    Widget item(String value, String label, {String prefix = ''}) {
+      final TextStyle valueStyle = TextStyle(
+        fontSize: 14,
+        height: 1.2,
+        fontWeight: FontWeight.w400,
+        color: profileColors.onHeader,
+      );
       return Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.2,
-              fontWeight: FontWeight.w400,
-              color: profileColors.onHeader,
+          Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                if (prefix.isNotEmpty)
+                  TextSpan(text: prefix, style: valueStyle),
+                TextSpan(text: value, style: AppTheme.numeric(valueStyle)),
+              ],
             ),
           ),
           if (label.isNotEmpty) ...<Widget>[
@@ -187,7 +196,7 @@ class _StatsRow extends StatelessWidget {
     final List<Widget> items = <Widget>[
       item('${user.follows}', '关注'),
       item('${user.followeds}', '粉丝'),
-      if (user.level > 0) item('Lv.${user.level}', ''),
+      if (user.level > 0) item('${user.level}', '', prefix: 'Lv.'),
       if (data.listenHours != null) item('${data.listenHours}', '小时'),
     ];
     return Row(

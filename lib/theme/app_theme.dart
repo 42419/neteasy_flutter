@@ -22,6 +22,7 @@ class AppColors {
     required this.chipBorder,
     required this.chipText,
     required this.chipFill,
+    required this.linkText,
     required this.iconPlay,
     required this.progressTrack,
     required this.scrim,
@@ -64,6 +65,10 @@ class AppColors {
 
   /// 播客标签的浅蓝填充底色（无描边）
   final Color chipFill;
+
+  /// 正文里的可点文字：动态的话题（`#摄影#`）、「展开」。
+  /// 真机截图上话题比正文浅、偏蓝，单独给一个令牌，不要复用标签色
+  final Color linkText;
 
   /// 行尾的实心播放三角
   final Color iconPlay;
@@ -108,6 +113,7 @@ class AppColors {
     chipBorder: Color(0xFFB6C3DD),
     chipText: Color(0xFF5975B2),
     chipFill: Color(0xFFE5EAF2),
+    linkText: Color(0xFF5B7FB6),
     iconPlay: Color(0xFF4A4A55),
     progressTrack: Color(0xFFC4C4C9),
     scrim: Color(0xFFF4F7FA),
@@ -135,6 +141,7 @@ class AppColors {
     chipBorder: Color(0xFF3A4356),
     chipText: Color(0xFF8FA3C8),
     chipFill: Color(0xFF232833),
+    linkText: Color(0xFF7E9CCB),
     iconPlay: Color(0xFFC4C4C8),
     progressTrack: Color(0xFF606062),
     scrim: Color(0xFF0D0D12),
@@ -404,6 +411,14 @@ class AppTheme {
     <Color>[Color(0xFFD3A8FF), Color(0xFF9A5BEF)],
   ];
 
+  // ---------- 大图页 ----------
+
+  /// 大图页的底色：纯黑，深浅主题都一样
+  static const Color viewerBackground = Color(0xFF000000);
+
+  /// 「原图」胶囊的描边：40% 白
+  static const Color viewerChipBorder = Color(0x66FFFFFF);
+
   // ---------- 间距 ----------
 
   /// 区块之间的竖向间距（设计规范值，具体区块另有自己的内边距）
@@ -458,6 +473,24 @@ class AppTheme {
   /// 辅助信息：副标题、播放量、占位提示
   static TextStyle caption(AppColors colors) =>
       TextStyle(fontSize: 11, height: 1.3, color: colors.textSecondary);
+
+  /// 纯数字用的官方字体（`Dolphin`）。
+  ///
+  /// 这是网易云自己的数字字体，只含 0-9、`% + − , . : = × ÷` 和「万/亿/千」，
+  /// 字形和官方截图一致；字母与中文在字体里是空字形，所以只能用在纯数字上。
+  ///
+  /// 它的数字**不是等宽的**（`1`/`7` 比其它数字宽一点），但动作条是 85dp
+  /// 定宽三列，数字变长不会推动旁边的内容，观感优先。
+  static TextStyle numeric(TextStyle base) =>
+      base.copyWith(fontFamily: 'Dolphin');
+
+  /// 中英混排里夹数字（「11月26日」「歌单 · 30首」）用这个：
+  /// 整体还是正文字体，只把数字换成等宽字形（需要字体支持 `tnum`）。
+  /// 不要换成 `Dolphin`：里面的「月」「日」是空心字形，会掉回系统字体，
+  /// 一行里两套字形更难看
+  static TextStyle tabularNumbers(TextStyle base) => base.copyWith(
+    fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+  );
 
   // ---------- ThemeData ----------
 

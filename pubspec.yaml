@@ -48,6 +48,7 @@ dependencies:
   audio_service: ^0.18.19
   # 登录态 cookie（MUSIC_U）等价于账号凭据，存加密存储：Android 走 Keystore + AES-GCM
   flutter_secure_storage: ^11.2.0
+  animations: ^3.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,6 +82,17 @@ flutter:
     - assets/icons/mini_player/
     - assets/images/
     - assets/anim/
+
+  # 官方的数字字体（Dolphin）：只含 0-9、% + − , . : = × ÷ 和 万/亿/千，
+  # 用来显示播放量、评论/点赞数这类数字。字母和中文都是空字形，
+  # 所以只能按「数字专用字体」用，正文不要设成它
+  fonts:
+    - family: Dolphin
+      fonts:
+        - asset: assets/font/dolphin.ttf
+          weight: 400
+        - asset: assets/font/dolphin_bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

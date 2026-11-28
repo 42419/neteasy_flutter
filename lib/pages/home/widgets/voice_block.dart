@@ -221,11 +221,13 @@ class BookTile extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 book.score,
-                style: TextStyle(
-                  fontSize: 21,
-                  height: 1.1,
-                  fontWeight: FontWeight.w500,
-                  color: colors.textDescription,
+                style: AppTheme.numeric(
+                  TextStyle(
+                    fontSize: 21,
+                    height: 1.1,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textPrimary,
+                  ),
                 ),
               ),
             ),
