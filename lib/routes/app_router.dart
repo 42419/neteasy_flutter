@@ -6,6 +6,7 @@ import '../api/ncm_repository.dart';
 import '../pages/main_page.dart';
 import '../player/netease_audio_handler.dart';
 import '../stores/daily_store.dart';
+import '../stores/follow_store.dart';
 import '../stores/home_store.dart';
 import '../stores/player_store.dart';
 import '../stores/profile_store.dart';
@@ -51,6 +52,11 @@ Widget getRootWidget({
     repo,
     uidProvider: () => session.uid,
   );
+  // 关注页：动态流和头像条都要求登录，未登录时它只清空不发请求
+  final FollowStore follow = FollowStore(
+    repo,
+    loggedInProvider: () => session.profile != null,
+  );
 
   // 播放地址要现取：把仓库接给后台音频服务
   audioHandler.urlResolver = repo.songUrl;
@@ -73,6 +79,8 @@ Widget getRootWidget({
     daily.clear();
     home.load();
     profile.load();
+    follow.reset();
+    follow.load();
   };
   // 先把上次成功的结果铺到首屏（同步，不阻塞首帧），再恢复登录态并静默刷新。
   // 顺序不能反：restore 完成前 uid 还是 null，先 load 会漏掉「我的歌单」。
@@ -80,14 +88,18 @@ Widget getRootWidget({
   session.restore().whenComplete(() {
     home.load();
     profile.load();
+    follow.load();
   });
 
   return MultiProvider(
     providers: [
+      // 页面直接要仓库的地方（动态详情拉评论）从这里取
+      Provider<NcmRepository>.value(value: repo),
       ChangeNotifierProvider<SessionStore>.value(value: session),
       ChangeNotifierProvider<HomeStore>.value(value: home),
       ChangeNotifierProvider<DailyStore>.value(value: daily),
       ChangeNotifierProvider<ProfileStore>.value(value: profile),
+      ChangeNotifierProvider<FollowStore>.value(value: follow),
       ChangeNotifierProvider<PlayerStore>.value(value: player),
     ],
     child: MaterialApp(

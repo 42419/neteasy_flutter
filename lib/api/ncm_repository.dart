@@ -1,4 +1,6 @@
 import '../utils/result.dart';
+import '../viewmodels/feed_comment.dart';
+import '../viewmodels/feed_event.dart';
 import '../viewmodels/home_block.dart';
 import '../viewmodels/home_entry.dart';
 import '../viewmodels/playlist.dart';
@@ -253,6 +255,72 @@ class NcmRepository {
     return switch (result) {
       Ok(:final Map<String, dynamic> value) => Ok(toWeeklyTopSong(value)),
       Err(:final AppError error) => Err<Song?>(error),
+    };
+  }
+
+  // ---------- 关注 ----------
+
+  /// 关注动态流（`/event`，需要登录）。
+  ///
+  /// 列表键是 **`event`（单数）**，和平铺的 `/user/event`（`events`）不一样，
+  /// 按错键会永远拿到空列表。
+  ///
+  /// [lasttime] 是翻页游标：第一页不传，之后把上一页返回的值原样带回来。
+  /// [refresh] 为 true 时额外带时间戳，绕过后端可能开着的读缓存（下拉刷新用）
+  Future<Result<FeedPage>> followEvents({
+    int pagesize = 20,
+    int? lasttime,
+    bool refresh = false,
+  }) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/event',
+      <String, String>{
+        'pagesize': '$pagesize',
+        if (lasttime != null && lasttime > 0) 'lasttime': '$lasttime',
+        if (refresh) 'timestamp': _stamp,
+      },
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toFeedPage(value)),
+      Err(:final AppError error) => Err<FeedPage>(error),
+    };
+  }
+
+  /// 关注列表（`/user/follow/mixed`，需要登录）：顶部头像条的人。
+  ///
+  /// `scene` 的 1 / 2 是「歌手 / 用户」，头像条两种都要，
+  /// 所以固定用 0（全部），由页面按记录自己筛。
+  Future<Result<List<FollowContact>>> followContacts({int size = 30}) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/user/follow/mixed',
+      <String, String>{'scene': '0', 'size': '$size'},
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toFollowContacts(value)),
+      Err(:final AppError error) => Err<List<FollowContact>>(error),
+    };
+  }
+
+  /// 动态的评论（`/comment/event`）。
+  ///
+  /// [threadId] 取自 `event.info.threadId`（形如 `A_EV_2_<动态id>_<用户id>`），
+  /// 不是动态 id，别混。
+  Future<Result<FeedCommentPage>> eventComments(
+    String threadId, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final Result<Map<String, dynamic>> result = await _api.get(
+      '/comment/event',
+      <String, String>{
+        'threadId': threadId,
+        'limit': '$limit',
+        'offset': '$offset',
+      },
+    );
+    return switch (result) {
+      Ok(:final Map<String, dynamic> value) => Ok(toCommentPage(value)),
+      Err(:final AppError error) => Err<FeedCommentPage>(error),
     };
   }
 

@@ -14,12 +14,24 @@ import '../theme/app_theme.dart';
 ///
 /// 首页、每日推荐、我的页、迷你播放器都用它，所以放在公用目录，不要再各写一份。
 class CoverImage extends StatelessWidget {
-  const CoverImage({super.key, required this.url, this.logicalWidth = 150});
+  const CoverImage({
+    super.key,
+    required this.url,
+    this.logicalWidth = 150,
+    this.crop = true,
+  });
 
   final String url;
 
   /// 控件上的显示宽度，用来换算 CDN 档位与解码尺寸
   final double logicalWidth;
+
+  /// 是否让 CDN 裁成方图。
+  ///
+  /// - `true`（默认）：`?param=NyN`，封面/头像这类方形容器用
+  /// - `false`：`?imageView&thumbnail=Nx0`，等比缩放到宽 N、高自适应，
+  ///   配合 `BoxFit.contain` **不裁任何边**（动态配图用）
+  final bool crop;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +43,9 @@ class CoverImage extends StatelessWidget {
     final int preset = presets(logicalWidth);
     final String fullUrl = normalized.contains('?')
         ? normalized
-        : '$normalized?param=${preset}y$preset';
+        : crop
+        ? '$normalized?param=${preset}y$preset'
+        : '$normalized?imageView&thumbnail=${preset}x0';
 
     return Stack(
       fit: StackFit.expand,
@@ -40,7 +54,8 @@ class CoverImage extends StatelessWidget {
         ColoredBox(color: colors.placeholder),
         CachedNetworkImage(
           imageUrl: fullUrl,
-          fit: BoxFit.cover,
+          // 不裁剪时用 contain：等比缩略图装进容器，多出来的地方留底色
+          fit: crop ? BoxFit.cover : BoxFit.contain,
           memCacheWidth: preset,
           maxWidthDiskCache: preset,
           httpHeaders: AppConstants.coverHeaders,

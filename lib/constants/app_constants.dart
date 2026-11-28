@@ -43,6 +43,26 @@ class AppConstants {
   /// 行尾更多（⋮）
   static const String moreIcon = 'assets/icons/more.png';
 
+  // ---------- 关注页 ----------
+  // 代码与文件对应关系见图标库的 names.csv，代号即文件名：
+  //   awf 分享 / aew 已点赞 / aon 右上角加号
+
+  /// 动态底部的评论、未点赞
+  static const String feedCommentIcon = 'assets/icons/comment.svg';
+  static const String feedPraiseIcon = 'assets/icons/praise.svg';
+
+  /// 已点赞（自带红色，不要再染色）
+  static const String feedPraisedIcon = 'assets/icons/praised.svg';
+
+  /// 转发 / 分享
+  static const String feedForwardIcon = 'assets/icons/share.svg';
+
+  /// 顶栏右侧的加号（自带白色，压在品牌红圆底上）
+  static const String feedPlusIcon = 'assets/icons/add.svg';
+
+  /// 大图页左上角的关闭（描边色，靠 srcIn 染白）
+  static const String viewerCloseIcon = 'assets/icons/close.svg';
+
   /// 迷你播放器：封面底下的黑胶唱片，以及右侧的播放列表图标
   static const String vinylDisc = 'assets/images/vinyl.webp';
   static const String queueIcon = 'assets/icons/mini_player/queue.svg';

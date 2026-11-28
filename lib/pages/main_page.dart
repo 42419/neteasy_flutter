@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../components/empty_hint.dart';
 import '../components/mini_player/mini_player.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
+import 'follow/follow_view.dart';
 import 'home/home_view.dart';
 import 'profile/profile_view.dart';
 
@@ -32,8 +32,7 @@ class _MainPageState extends State<MainPage> {
         index: _index,
         children: <Widget>[
           const HomeView(),
-          // 「关注」还没做。按约定：缺内容先放居中占位，不编假数据
-          const SafeArea(child: EmptyHint(text: '关注 页待实现')),
+          const FollowView(),
           const ProfileView(),
         ],
       ),

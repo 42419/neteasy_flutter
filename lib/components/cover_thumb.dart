@@ -15,6 +15,7 @@ class CoverThumb extends StatelessWidget {
     this.width,
     this.height,
     this.radius = AppTheme.radiusThumb,
+    this.crop = true,
   });
 
   final String url;
@@ -27,6 +28,9 @@ class CoverThumb extends StatelessWidget {
 
   final double radius;
 
+  /// 传给 [CoverImage]：false 时等比缩放、不裁图
+  final bool crop;
+
   @override
   Widget build(BuildContext context) {
     final double w = width ?? size;
@@ -36,7 +40,7 @@ class CoverThumb extends StatelessWidget {
       child: SizedBox(
         width: w,
         height: h,
-        child: CoverImage(url: url, logicalWidth: w > h ? w : h),
+        child: CoverImage(url: url, logicalWidth: w > h ? w : h, crop: crop),
       ),
     );
   }

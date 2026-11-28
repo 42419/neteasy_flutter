@@ -8,10 +8,12 @@
 /// - `track_mapper.dart`  榜单前三首歌名
 /// - `profile_mapper.dart` 「我的」页：用户详情、会员、徽章、听歌时长、歌单数
 /// - `player_mapper.dart` 播放地址
+/// - `event_mapper.dart`  关注页：动态流、关注关系
 ///
 /// 所有容错都收敛在这层：关键字段缺失返回 null 让上层过滤，页面里不做 `as` 强转。
 library;
 
+export 'mapper/event_mapper.dart';
 export 'mapper/home_block_mapper.dart';
 export 'mapper/home_entry_mapper.dart';
 export 'mapper/json_utils.dart';
